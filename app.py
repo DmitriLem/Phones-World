@@ -29,6 +29,34 @@ def get_location_from_ip(ip_address, api_token):
         return city, postal_code
     else:
         return ''
+    
+@app.route('/search/<int:category_id>')
+def search_by_category(category_id):
+    user_ip = request.remote_addr
+
+# Создаем соединение с базой данных
+    conn = create_connection()
+    cursor = conn.cursor()
+
+    cursor.execute("SELECT * FROM Categories")
+    categories = cursor.fetchall()
+
+    # Получаем данные из таблицы Products
+    cursor.execute("SELECT * FROM Products")
+    products = cursor.fetchall()
+
+    # Получаем данные из таблицы Inventory
+    cursor.execute("SELECT * FROM Inventory")
+    inventory = cursor.fetchall()
+
+    # Закрываем соединение
+    conn.close()
+
+    filtered_categories = [category for category in categories if len(category.name.split()) <= 2][:17]
+
+    city, postal_code = get_location_from_ip(user_ip, '86c960f33f9c64') #Api token
+
+    return render_template('search_results.html', category_id=category_id, categories=filtered_categories, city=city, postal_code=postal_code, inventory=inventory)
 
 @app.route('/')
 def index():

@@ -1,4 +1,7 @@
 1. Закончить Navigation Bar в base.html
+
+Search Textbox, Search Button, label that showing the city and zipcode
+
 2. Адаптируй Категории и нужно сделать переадресацию на страницу поиска.
 3. Подключить остальные таблицы в нужные нам места
 4. Создать Cart с использованием cookie 

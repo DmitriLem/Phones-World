@@ -1,0 +1,31 @@
+{% extends 'base.html' %}
+
+{% block head %}
+<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+<link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+{% endblock %}
+
+{% block body %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card product-card">
+                <img src="{{ product.image_url }}" class="card-img-top" alt="{{ product.name }}">
+                <div class="card-body">
+                    <h5 class="card-title">{{ product.name }}</h5>
+                    <p class="card-text">{{ product.description }}</p>
+                    <p class="card-price">Price: ${{ product.price }}</p>
+                    {% if product.quantity is none %}
+                        <p class="badge badge-danger">Out of Stock</p>
+                    {% elif product.quantity <= 30 %}
+                        <p class="badge badge-warning">Quantity: {{ product.quantity }}</p>
+                    {% else %}
+                        <p class="badge badge-success">In Stock</p>
+                    {% endif %}
+                    <button class="btn btn-outline-primary btn-buy">Buy Now</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

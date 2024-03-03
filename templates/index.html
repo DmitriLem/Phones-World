@@ -1,21 +1,31 @@
 {% extends 'base.html' %}
 
 {% block head %}
+<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+<link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
 {% endblock %}
 
 {% block body %}
-<div class="container">
-    <div class="row mt-5">
+<div class="container mt-5">
+    <div class="row justify-content-center">
         {% for product in random_products %}
-                <div class="col-md-3">
-                    <div class="card mb-4"> 
-                        <img src="{{ product.image_url }}" class="card-img-top" alt="...">
-                        <div class="card-body">
-                            <h5 class="card-title">{{ product.name }}</h5>
-                            <p class="card-text">{{ product.description }}</p>
-                        </div>
-                    </div>
+        <div class="col-md-4 mb-4">
+            <a href="{{ url_for('view_product', product_id=product.product_id) }}" class="card product-card">
+                <img src="{{ product.image_url }}" class="card-img-top" alt="{{ product.name }}">
+                <div class="card-body">
+                    <h5 class="card-title">{{ product.name }}</h5>
+                    <p class="card-text">{{ product.description }}</p>
+                    <p class="card-price">Price: ${{ product.price }}</p>
+                    {% if product.quantity is none %}
+                        <p class="badge badge-danger">Out of Stock</p>
+                    {% elif product.quantity <= 30 %}
+                        <p class="badge badge-warning">Quantity: {{ product.quantity }}</p>
+                    {% else %}
+                        <p class="badge badge-success">In Stock</p>
+                    {% endif %}
                 </div>
+            </a>
+        </div>
         {% endfor %}
     </div>
 </div>

@@ -1,5 +1,63 @@
+/* Переиспользуемые стили */
 body {
-    margin: 0;
-    font-family: sans-serif;
+    font-family: Arial, sans-serif;
+    background-color: #f8f9fa;
 }
 
+.product-card, .search-result-card {
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    transition: box-shadow 0.3s;
+}
+
+.product-card:hover, .search-result-card:hover {
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.product-card img, .search-result-card img {
+    width: 100%;
+    height: auto;
+    border-bottom: 1px solid #dee2e6;
+}
+
+.product-card .card-body, .search-result-card .card-body {
+    padding: 1.25rem;
+}
+
+.product-card .card-title, .search-result-card .card-title {
+    font-size: 1.25rem;
+    font-weight: bold;
+    margin-bottom: 0.75rem;
+}
+
+.product-card .card-text, .search-result-card .card-text {
+    font-size: 1rem;
+    color: #6c757d;
+}
+
+.card-price {
+    font-size: 1rem;
+    font-weight: bold;
+}
+
+/* Бэйджи */
+.badge {
+    margin-right: 5px;
+    font-size: 0.875rem;
+    padding: 0.3rem 0.6rem;
+}
+
+/* Кнопки */
+.btn-add-to-cart, .btn-buy {
+    margin-top: 10px;
+}
+
+/* Анимация для всех карточек продуктов */
+@keyframes fadeIn {
+    0% { opacity: 0; transform: translateY(-20px); }
+    100% { opacity: 1; transform: translateY(0); }
+}
+
+.product-card, .search-result-card {
+    animation: fadeIn 0.5s ease-in-out;
+}

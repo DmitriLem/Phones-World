@@ -4,8 +4,9 @@
 {% endblock %}
 
 {% block body %}
-<div class="container mt-5">
-    <h3 class="text-center mb-4">Search Results for <b>{{ results[0].category_name }}</b></h3>
+
+    {% if results %}
+    <h3 class="text-center mt-5">Search Results</h3>
     <div class="row justify-content-center">
         {% for result in results %}
         <div class="col-md-4 mb-4">
@@ -32,8 +33,10 @@
                     </div>
                 </div>
             </div>
+            
         </div>
         {% endfor %}
     </div>
+    {% endif %}
 </div>
 {% endblock %}

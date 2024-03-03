@@ -61,3 +61,8 @@ body {
 .product-card, .search-result-card {
     animation: fadeIn 0.5s ease-in-out;
 }
+
+.resized-image {
+    max-width: 100%; /* Установка максимальной ширины изображения */
+    height: auto; /* Автоматическое изменение высоты для сохранения пропорций */
+}

@@ -24,7 +24,7 @@
                             {% else %}
                                 <span class="badge badge-success">In Stock</span>
                                 {% if result.quantity > 0 %}
-                                    <button class="btn btn-outline-success btn-add-to-cart">Add to Cart</button>
+                                <button class="btn btn-outline-success btn-add-to-cart" data-product-id="{{ result.product_id }}">Add to Cart</button>
                                     <button class="btn btn-outline-primary btn-buy">Buy</button>
                                 {% endif %}
                             {% endif %}

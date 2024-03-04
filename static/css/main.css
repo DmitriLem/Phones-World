@@ -66,3 +66,23 @@ body {
     max-width: 100%; /* Установка максимальной ширины изображения */
     height: auto; /* Автоматическое изменение высоты для сохранения пропорций */
 }
+
+span.no-select {
+    -webkit-touch-callout: none; /* iOS Safari */
+      -webkit-user-select: none; /* Safari */
+       -khtml-user-select: none; /* Konqueror HTML */
+         -moz-user-select: none; /* Firefox */
+          -ms-user-select: none; /* Internet Explorer/Edge */
+              user-select: none; /* Non-prefixed version, currently supported by Chrome, Edge, Opera and Firefox */
+}
+
+/* cart.css */
+
+.cart-item {
+    margin-bottom: 20px;
+}
+
+.cart-item img {
+    max-width: 100%;
+    height: auto;
+}

@@ -1,0 +1,54 @@
+{% extends 'base.html' %}
+
+{% block head %}
+<!-- Добавим ссылку на CSS-файл для стилизации корзины -->
+<link rel="stylesheet" href="{{ url_for('static', filename='css/cart.css') }}">
+{% endblock %}
+
+{% block body %}
+<div class="container mt-5">
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Your Cart</h5>
+                    <hr>
+                    {% for product, quantity in cart_details %}
+                    <div class="row cart-item">
+                        <div class="col-md-2">
+                            <img src="{{ product.image_url }}" class="img-fluid" alt="{{ product.name }}">
+                        </div>
+                        <div class="col-md-6">
+                            <h6 class="card-subtitle mb-2 text-muted">{{ product.name }}</h6>
+                            <p class="card-text">{{ product.description }}</p>
+                        </div>
+                        <div class="col-md-2">
+                            <p class="card-text">Price: ${{ product.price }}</p>
+                            <p class="card-text">Quantity: {{ quantity }}</p>
+                            <p class="card-text">Total: ${{ product.price * quantity }}</p>
+                        </div>
+                        <div class="col-md-2">
+                            <form action="{{ url_for('remove_from_cart', product_id=product.product_id) }}" method="post">
+                                <button type="submit" class="btn btn-danger">Remove</button>
+                            </form>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Order Summary</h5>
+                    <hr>
+                    <p class="card-text">Total Items: {{ total_items }}</p>
+                    <p class="card-text">Total Price: ${{ total_price }}</p>
+
+                    <a href="#" class="btn btn-primary">Proceed to Checkout</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,49 @@
+{% extends 'base.html' %}
+
+{% block head %}
+
+{% endblock %}
+
+{% block body %}
+<div class="container mt-5">
+    
+    <div class="row mb-2 text-end">
+        <div class="col">
+            <a href="{{ url_for('index') }}" class="btn btn-outline-primary">Return to main page</a>
+            <a href="{{ url_for('add_product') }}" class="btn btn-outline-success">Add new Product</a>
+        </div>
+    </div>
+    
+    <table class="table table-success">
+        <thead>
+          <tr>
+            <th scope="col">Product ID</th>
+            <th scope="col">Name</th>
+            <th scope="col">Categories</th>
+            <th scope="col">Description</th>
+            <th scope="col">Quantity</th>
+            <th scope="col"></th>
+            <th scope="col"></th>
+          </tr>
+        </thead>
+        <tbody>
+            {% for product in results %}
+          <tr>
+            <td scope="row">{{ product.product_id }}</td>
+            <td>{{ product.name }}</td>
+            <td>{{ product.category_name }}</td>
+            <td>{{ product.description }}</td>
+            <td>{{ product.quantity }}</td>
+            <td>
+                <a class="btn btn-warning" href="#">Edit</a>
+            </td>
+            <td>
+                <a class="btn btn-danger" href="#" onclick="confirmDelete('{{ product.name }}')">Delete</a>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    
+</div>
+{% endblock %}

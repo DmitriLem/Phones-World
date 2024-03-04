@@ -308,5 +308,86 @@ def remove_from_cart(product_id):
 
     return redirect('/cart')
 
+@app.route('/crud')
+def crud():
+    user_ip = request.remote_addr
+
+    # Создаем соединение с базой данных
+    conn = create_connection()
+    cursor = conn.cursor()
+
+    cursor.execute("SELECT * FROM Categories")
+    categories = cursor.fetchall()
+
+    query = """
+    SELECT 
+        p.product_id,
+        p.name,
+        c.name as category_name,
+        p.category_id,
+        p.price,
+        p.description,
+        i.quantity,
+        p.image_url
+    FROM 
+        Products as p
+    LEFT JOIN 
+        Categories as c ON p.category_id = c.category_id
+    LEFT JOIN 
+        Inventory as i ON p.product_id = i.product_id
+    """
+    cursor.execute(query)
+    results = cursor.fetchall()
+
+    # Закрываем соединение
+    conn.close()
+
+    filtered_categories = [category for category in categories if len(category.name.split()) <= 2][:17]
+
+    city, postal_code = get_location_from_ip(user_ip, '86c960f33f9c64') #Api token
+
+    return render_template('crud.html', year=datetime.now().year, results=results, categories=filtered_categories, city=city, postal_code=postal_code)
+
+@app.route('/add_product')
+def add_product():
+    user_ip = request.remote_addr
+
+    # Создаем соединение с базой данных
+    conn = create_connection()
+    cursor = conn.cursor()
+
+    cursor.execute("SELECT * FROM Categories")
+    categories = cursor.fetchall()
+
+    query = """
+    SELECT 
+        c.category_id,
+        c.name
+    FROM 
+        Categories as c
+    """
+    cursor.execute(query)
+    results = cursor.fetchall()
+
+    # Закрываем соединение
+    conn.close()
+
+    filtered_categories = [category for category in categories if len(category.name.split()) <= 2][:17]
+
+    city, postal_code = get_location_from_ip(user_ip, '86c960f33f9c64') #Api token
+
+    return render_template('add_product.html', year=datetime.now().year, results=results, categories=filtered_categories, city=city, postal_code=postal_code)
+
+@app.route('/create', methods=['POST'])
+def create():
+    if request.method == 'POST':
+        # Здесь вы можете получить данные из формы и добавить новый продукт в базу данных
+        # Это место, где вы обрабатываете данные формы, которые были отправлены методом POST
+        flash('Product added successfully!', 'success')
+        return redirect('/crud')  # Перенаправляем пользователя обратно на страницу CRUD после добавления продукта
+    else:
+        return redirect('/add_product')
+
+
 if __name__ == "__main__":
     app.run(debug=True)

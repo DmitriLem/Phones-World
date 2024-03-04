@@ -29,3 +29,16 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 });
+
+
+function confirmDelete(productName) {
+    if (confirm(`Are you sure you want to delete "${productName}" from the database?`)) {
+        var userInput = prompt("Enter the product name to confirm deletion:");
+        if (userInput === productName) {
+            // User entered the product name correctly, proceed with deletion
+            window.location.href = '/delete/' + productName; // Replace '/delete/' with the URL where you want to send the request to delete the product in Flask
+        } else {
+            alert("The entered product name does not match, deletion canceled.");
+        }
+    }
+}

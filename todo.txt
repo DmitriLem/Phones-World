@@ -1,3 +1,8 @@
 1. Закончить Navigation Bar в base.html
 2. Адаптируй Категории и нужно сделать переадресацию на страницу поиска.
 4. Создать Cart с использованием cookie
+
+
+Update Product
+Get ID from Product
+Update Inventory

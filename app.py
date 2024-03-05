@@ -3,9 +3,13 @@ import pyodbc
 import random
 import requests
 from datetime import datetime
+import os
+from werkzeug.utils import secure_filename
+import uuid
 
 app = Flask(__name__)
 app.secret_key = 'my_super_secret_key_1234567890NobodyWillGetThisKeyAnyway'
+app.config['UPLOAD_FOLDER'] = os.path.join(os.getcwd(), 'static', 'userUploadPhotos')
 
 # Функция для создания соединения с базой данных
 def create_connection():
@@ -300,6 +304,13 @@ def add_to_cart(product_id):
     flash('Product added to cart successfully!', 'success')
     return redirect('/cart')
 
+@app.route('/edit_category/<int:category_id>', methods=['GET'])
+def edit_category(category_id):
+    # Fetch category details from the database based on category_id
+    category = Category.query.get_or_404(category_id)
+    return render_template('edit_category.html', category=category)
+
+
 @app.route('/remove_from_cart/<int:product_id>', methods=['POST'])
 def remove_from_cart(product_id):
     if 'cart' in session and product_id in session['cart']:
@@ -381,13 +392,52 @@ def add_product():
 @app.route('/create', methods=['POST'])
 def create():
     if request.method == 'POST':
-        # Здесь вы можете получить данные из формы и добавить новый продукт в базу данных
-        # Это место, где вы обрабатываете данные формы, которые были отправлены методом POST
-        flash('Product added successfully!', 'success')
-        return redirect('/crud')  # Перенаправляем пользователя обратно на страницу CRUD после добавления продукта
+        # Получаем данные из формы
+        name = request.form['name']
+        category_id = request.form['category_id']
+        price = request.form['price']
+        description = request.form['description']
+        quantity = request.form['quantity']
+        
+        # Получаем файл изображения
+        file = request.files['image']
+        
+        # Проверяем, что файл был загружен
+        if file:
+            # Генерируем уникальное имя для изображения
+            filename = str(uuid.uuid4()) + secure_filename(file.filename)
+            # Сохраняем изображение в папке static/userUploadPhotos
+            file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+            
+            # Соединяемся с базой данных и выполняем запрос
+            conn = create_connection()
+            cursor = conn.cursor()
+            try:
+                # Добавляем новый продукт
+                cursor.execute("INSERT INTO Products (name, category_id, price, description, image_url) VALUES (?, ?, ?, ?, ?)", (name, category_id, price, description, filename))
+                
+                # Получаем product_id нового продукта, который только что был добавлен.
+                cursor.execute("SELECT product_id FROM Products WHERE name = ? AND description = ? AND price = ?", (name, description, price))
+                product_id = cursor.fetchone()[0]
+
+                # Добавляем quantity в таблицу Inventory, где должен быть привязан product_id
+                cursor.execute("INSERT INTO Inventory (product_id, quantity) VALUES (?, ?)", (product_id, quantity))
+                
+                conn.commit()
+                flash('Product added successfully!', 'success')
+            except Exception as e:
+                conn.rollback()
+                print(e)
+                flash('Failed to add product. Error: ' + str(e), 'error')
+            finally:
+                conn.close()
+            
+            return redirect('/crud')  # Перенаправляем пользователя обратно на страницу CRUD после добавления продукта
+        else:
+            flash('Failed to add product. Image is required.', 'error')
+            return redirect('/add_product')
     else:
         return redirect('/add_product')
-
 
 if __name__ == "__main__":
     app.run(debug=True)

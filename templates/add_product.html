@@ -7,7 +7,7 @@
 {% block body %}
 <div class="container mt-5">
     <h2>Add New Product</h2>
-    <form method="POST" action="{{ url_for('create') }}">
+    <form method="POST" action="{{ url_for('create') }}" onsubmit="return validateForm()" enctype="multipart/form-data">
         <div class="mb-3">
             <label for="name" class="form-label">Name</label>
             <input type="text" class="form-control" id="name" name="name" required>
@@ -15,24 +15,80 @@
         <div class="mb-3">
             <label for="category_id" class="form-label">Category</label>
             <select class="form-select" id="category_id" name="category_id" required>
-                {% for category in results %}
+                <option value="" disabled selected>-- Please Select --</option>
+                {% for category in categories %}
                     <option value="{{ category.category_id }}">{{ category.name }}</option>
                 {% endfor %}
             </select>
         </div>
         <div class="mb-3">
             <label for="price" class="form-label">Price</label>
-            <input type="number" class="form-control" id="price" name="price" step="0.01" required>
+            <input type="number" class="form-control" id="price" name="price" step="0.01" min="1" required>
+        </div>
+        <div class="mb-3">
+            <label for="quantity" class="form-label">Quantity</label>
+            <input type="number" class="form-control" id="quantity" name="quantity"  required>
         </div>
         <div class="mb-3">
             <label for="description" class="form-label">Description</label>
             <textarea class="form-control" id="description" name="description" rows="3" required></textarea>
         </div>
         <div class="mb-3">
-            <label for="image_url" class="form-label">Image URL</label>
-            <input type="text" class="form-control" id="image_url" name="image_url" required>
+            <label for="formFileSm" class="form-label">Upload photo (1000x1000)</label>
+            <input class="form-control form-control-sm" id="formFileSm" type="file" accept="image/*" name="image" onchange="return validateImage()" required>
         </div>
         <button type="submit" class="btn btn-primary">Add Product</button>
     </form>
+    
 </div>
+
+<script>
+    function validateForm() {
+        var selectElement = document.getElementById('category_id');
+        var selectedValue = selectElement.value;
+        
+        // Проверка, что выбрано значение категории (не пустая строка)
+        if (selectedValue === '') {
+            alert('Please select a category');
+            return false; // Отмена отправки формы
+        }
+
+        var fileInput = document.getElementById('formFileSm');
+        var file = fileInput.files[0];
+        
+        // Проверяем, выбран ли файл
+        if (!file) {
+            alert('Please select an image');
+            return false;
+        }
+        
+        // Создаем объект для чтения изображения
+        var img = new Image();
+        img.onload = function() {
+            var width = this.width;
+            var height = this.height;
+            
+            console.log('resolution');
+            console.log(width, height);
+            
+            // Проверяем размеры изображения
+            if (width !== 1000 || height !== 1000) {
+                alert('Image must be 1000x1000 pixels');
+                return false;
+            }
+            
+            // Если все в порядке, отправляем форму
+            console.log("Form is good, sending it");
+            fileInput.form.submit();
+        };
+        
+        // Читаем данные изображения
+        console.log('why am i here');
+        img.src = URL.createObjectURL(file);
+        console.log('false');
+        return false; // Отмена отправки формы
+    }
+</script>
+
+
 {% endblock %}

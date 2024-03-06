@@ -1,8 +1,6 @@
-1. Закончить Navigation Bar в base.html
-2. Адаптируй Категории и нужно сделать переадресацию на страницу поиска.
-4. Создать Cart с использованием cookie
-
-
-Update Product
-Get ID from Product
-Update Inventory
+Finish Add to Cart Everywhere
+Create mew View for our products
+Create Buy
+Create Email Receipt
+Create Payment System
+Create tables in our SQL to hold all receipt and products that was bought

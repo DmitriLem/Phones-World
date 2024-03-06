@@ -479,5 +479,53 @@ def delete_product(product_id):
     else:
         return redirect('/crud')
 
+
+@app.route('/edit_product/<int:product_id>', methods=['GET', 'POST'])
+def edit_product(product_id):
+    user_ip = request.remote_addr
+    city, postal_code = get_location_from_ip(user_ip, '86c960f33f9c64') #Api token
+    # Создаем соединение с базой данных
+    conn = create_connection()
+    cursor = conn.cursor()
+
+    # Получаем данные о продукте из базы данных
+    cursor.execute("SELECT * FROM Products WHERE product_id=?", (product_id,))
+    product = cursor.fetchone()
+
+    # Получаем категории из базы данных
+    cursor.execute("SELECT * FROM Categories")
+    categories = cursor.fetchall()
+    filtered_categories = [category for category in categories if len(category.name.split()) <= 2][:17]
+
+    # Закрываем соединение с базой данных
+    conn.close()
+
+    if request.method == 'POST':
+        # Получаем данные из формы редактирования продукта
+        name = request.form.get('name')
+        category_id = int(request.form.get('category_id'))
+        price = decimal.Decimal(request.form.get('price'))
+        description = request.form.get('description')
+
+        # Выполняем обновление данных о продукте в базе данных
+        conn = create_connection()
+        cursor = conn.cursor()
+
+        try:
+            cursor.execute("UPDATE Products SET name=?, category_id=?, price=?, description=? WHERE product_id=?",
+                           (name, category_id, price, description, product_id))
+            conn.commit()
+            flash('Product updated successfully!', 'success')
+        except Exception as e:
+            conn.rollback()
+            print(e)
+            flash('Failed to update product. Error: ' + str(e), 'error')
+        finally:
+            conn.close()
+
+        return redirect('/crud')  # Перенаправляем пользователя обратно на страницу CRUD после обновления продукта
+
+    return render_template('edit_product.html', product=product, categories=filtered_categories, year=datetime.now().year,city=city, postal_code=postal_code)
+
 if __name__ == "__main__":
     app.run(debug=True)

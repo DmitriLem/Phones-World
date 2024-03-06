@@ -64,7 +64,11 @@
         {% for product in random_products %}
         <div class="col-md-4 mb-4">
             <a href="{{ url_for('view_product', product_id=product.product_id) }}" class="card product-card">
-                <img src="{{ product.image_url }}" class="card-img-top" alt="{{ product.name }}">
+                {% if product.image_url.startswith('http') %}
+                    <img src="{{ product.image_url }}" class="card-img-top" alt="{{ product.name }}">
+                {% else %}
+                    <img src="/static/userUploadPhotos/{{ product.image_url }}" class="card-img-top" alt="{{ product.name }}">
+                {% endif %}
                 <div class="card-body">
                     <h5 class="card-title">{{ product.name }}</h5>
                     <p class="card-text">{{ product.description }}</p>

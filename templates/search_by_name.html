@@ -11,7 +11,11 @@
             {% for result in results %}
             <div class="col-md-4 mb-4">
                 <div class="card product-card">
+                    {% if result.image_url.startswith('http') %}
                     <img src="{{ result.image_url }}" class="card-img-top" alt="{{ result.name }}">
+                {% else %}
+                    <img src="/static/userUploadPhotos/{{ result.image_url }}" class="card-img-top" alt="{{ result.name }}">
+                {% endif %}
                     <div class="card-body">
                         <h5 class="card-title">{{ result.name }}</h5>
                         <p class="card-text">{{ result.description }}</p>

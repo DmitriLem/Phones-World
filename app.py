@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, session, flash
+from flask import Flask, render_template, request, redirect, session, flash, jsonify
 import pyodbc
 import random
 import requests
@@ -6,6 +6,7 @@ from datetime import datetime
 import os
 from werkzeug.utils import secure_filename
 import uuid
+import decimal
 
 app = Flask(__name__)
 app.secret_key = 'my_super_secret_key_1234567890NobodyWillGetThisKeyAnyway'
@@ -393,14 +394,14 @@ def add_product():
 def create():
     if request.method == 'POST':
         # Получаем данные из формы
-        name = request.form['name']
-        category_id = request.form['category_id']
-        price = request.form['price']
-        description = request.form['description']
-        quantity = request.form['quantity']
+        name = request.form.get('name')
+        category_id = int(request.form.get('category_id'))
+        price = decimal.Decimal(request.form.get('price'))  # Преобразуем строку в десятичное число
+        description = request.form.get('description')
+        quantity = int(request.form.get('quantity'))
         
         # Получаем файл изображения
-        file = request.files['image']
+        file = request.files.get('image')
         
         # Проверяем, что файл был загружен
         if file:
@@ -417,9 +418,9 @@ def create():
                 cursor.execute("INSERT INTO Products (name, category_id, price, description, image_url) VALUES (?, ?, ?, ?, ?)", (name, category_id, price, description, filename))
                 
                 # Получаем product_id нового продукта, который только что был добавлен.
-                cursor.execute("SELECT product_id FROM Products WHERE name = ? AND description = ? AND price = ?", (name, description, price))
+                cursor.execute("SELECT product_id FROM Products WHERE name = ? AND description LIKE ? AND price = ?", (name, description, price))
                 product_id = cursor.fetchone()[0]
-
+                
                 # Добавляем quantity в таблицу Inventory, где должен быть привязан product_id
                 cursor.execute("INSERT INTO Inventory (product_id, quantity) VALUES (?, ?)", (product_id, quantity))
                 
@@ -438,6 +439,45 @@ def create():
             return redirect('/add_product')
     else:
         return redirect('/add_product')
+
+@app.route('/delete/<int:product_id>', methods=['POST', 'GET'])
+def delete_product(product_id):
+    if request.method == 'POST':
+        # Создаем соединение с базой данных
+        conn = create_connection()
+        cursor = conn.cursor()
+
+        try:
+            # Получаем image_url продукта, который мы собираемся удалить
+            cursor.execute("SELECT image_url FROM Products WHERE product_id=?", (product_id,))
+            image_url = cursor.fetchone()[0]
+
+            # Удаляем запись из таблицы Inventory
+            cursor.execute("DELETE FROM Inventory WHERE product_id=?", (product_id,))
+
+            # Удаляем запись из таблицы Products
+            cursor.execute("DELETE FROM Products WHERE product_id=?", (product_id,))
+
+            # Формируем путь к файлу изображения для удаления
+            image_path = os.path.join(app.config['UPLOAD_FOLDER'], image_url)
+
+            # Проверяем, существует ли файл изображения
+            if os.path.exists(image_path):
+                # Удаляем файл изображения
+                os.remove(image_path)
+
+            conn.commit()
+            flash('Product deleted successfully!', 'success')
+        except Exception as e:
+            conn.rollback()
+            print(e)
+            flash('Failed to delete product. Error: ' + str(e), 'error')
+        finally:
+            conn.close()
+
+        return redirect('/crud')
+    else:
+        return redirect('/crud')
 
 if __name__ == "__main__":
     app.run(debug=True)

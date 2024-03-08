@@ -71,7 +71,7 @@
                 {% endif %}
                 <div class="card-body">
                     <h5 class="card-title">{{ product.name }}</h5>
-                    <p class="card-text">{{ product.description }}</p>
+                    <p class="card-text">{{ product.description | truncate(length=55, end='...') }}</p>
                     <p class="card-price">Price: ${{ product.price }}</p>
                     {% if product.quantity is none %}
                         <p class="badge badge-danger">Out of Stock</p>

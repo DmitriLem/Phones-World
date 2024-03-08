@@ -18,7 +18,7 @@
                 {% endif %}
                     <div class="card-body">
                         <h5 class="card-title">{{ result.name }}</h5>
-                        <p class="card-text">{{ result.description }}</p>
+                        <p class="card-text">{{ result.description | truncate(length=55, end='...') }}</p>
                         <div class="d-flex justify-content-between align-items-center">
                             <span class="card-price">${{ result.price }}</span>
                             <div>

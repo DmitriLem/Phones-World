@@ -3,32 +3,96 @@
 {% block head %}
 <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
 <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+<style>
+    /* Дополнительные стили для обзора продукта */
+    .product-container {
+        display: flex;
+        justify-content: center;
+        align-items: flex-start;
+        padding-top: 50px;
+    }
+
+    .product-image {
+        flex: 0 0 40%;
+        margin-right: 20px;
+    }
+
+    .product-details {
+        flex: 0 0 60%;
+    }
+
+    .product-image img {
+        max-width: 100%;
+        height: auto;
+        border-radius: 8px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    .product-details h1 {
+        font-size: 2rem;
+        margin-bottom: 10px;
+    }
+
+    .product-details p {
+        font-size: 1.1rem;
+        margin-bottom: 15px;
+    }
+
+    .product-price {
+        font-size: 1.5rem;
+        font-weight: bold;
+        color: #007bff;
+        margin-bottom: 15px;
+    }
+
+    .product-actions {
+        margin-top: 20px;
+    }
+
+    .btn-buy, .btn-add-to-cart {
+        width: 200px;
+        margin-right: 10px;
+        background-color: #007bff;
+        border: none;
+        color: white;
+        padding: 10px 0;
+        border-radius: 4px;
+        cursor: pointer;
+        transition: background-color 0.3s ease;
+    }
+
+    .btn-buy:hover, .btn-add-to-cart:hover {
+        background-color: #0056b3;
+    }
+</style>
 {% endblock %}
 
 {% block body %}
-<div class="container mt-5">
-    <div class="row justify-content-center">
-        <div class="col-md-8">
-            <div class="card product-card">
-                {% if product.image_url.startswith('http') %}
+<div class="container">
+    <div class="product-container">
+        <div class="product-image">
+            {% if product.image_url.startswith('http') %}
                     <img src="{{ product.image_url }}" class="card-img-top" alt="{{ product.name }}">
                 {% else %}
                     <img src="/static/userUploadPhotos/{{ product.image_url }}" class="card-img-top" alt="{{ product.name }}">
                 {% endif %}
-                <div class="card-body">
-                    <h5 class="card-title">{{ product.name }}</h5>
-                    <p class="card-text">{{ product.description }}</p>
-                    <p class="card-price">Price: ${{ product.price }}</p>
-                    {% if product.quantity is none %}
-                        <p class="badge badge-danger">Out of Stock</p>
-                    {% elif product.quantity <= 30 %}
-                        <p class="badge badge-warning">Quantity: {{ product.quantity }}</p>
-                    {% else %}
-                        <p class="badge badge-success">In Stock</p>
-                    {% endif %}
-                    <button class="btn btn-outline-primary btn-buy">Buy Now</button>
-                    <button class="btn btn-outline-primary btn-buy">Add to Cart</button>
-                </div>
+        </div>
+        <div class="product-details">
+            <h1>{{ product.name }}</h1>
+            <p>{{ product.description }}</p>
+            <p class="product-price">Price: ${{ product.price }}</p>
+            <p>
+                {% if product.quantity is none %}
+                    <span class="badge badge-danger">Out of Stock</span>
+                {% elif product.quantity <= 30 %}
+                    <span class="badge badge-warning">Quantity: {{ product.quantity }}</span>
+                {% else %}
+                    <span class="badge badge-success">In Stock</span>
+                {% endif %}
+            </p>
+            <div class="product-actions">
+                <button class="btn btn-buy">Buy Now</button>
+                <button class="btn btn-add-to-cart">Add to Cart</button>
             </div>
         </div>
     </div>

@@ -1,5 +1,4 @@
 Finish Add to Cart Everywhere
-Create mew View for our products
 Create Buy
 Create Email Receipt
 Create Payment System

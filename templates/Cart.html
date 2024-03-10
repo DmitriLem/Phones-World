@@ -13,27 +13,27 @@
                 <div class="card-body">
                     <h5 class="card-title">Your Cart</h5>
                     <hr>
-                    {% for product, quantity in cart_details %}
-                    <div class="row cart-item">
-                        <div class="col-md-2">
-                            <img src="{{ product.image_url }}" class="img-fluid" alt="{{ product.name }}">
-                        </div>
-                        <div class="col-md-6">
-                            <h6 class="card-subtitle mb-2 text-muted">{{ product.name }}</h6>
-                            <p class="card-text">{{ product.description | truncate(length=55, end='...') }}</p>
-                        </div>
-                        <div class="col-md-2">
-                            <p class="card-text">Price: ${{ product.price }}</p>
-                            <p class="card-text">Quantity: {{ quantity }}</p>
-                            <p class="card-text">Total: ${{ product.price * quantity }}</p>
-                        </div>
-                        <div class="col-md-2">
-                            <form action="{{ url_for('remove_from_cart', product_id=product.product_id) }}" method="post">
-                                <button type="submit" class="btn btn-danger">Remove</button>
-                            </form>
-                        </div>
-                    </div>
-                    {% endfor %}
+                    {% if cart %}
+                        {% for product_id, quantity in cart.items() %}
+                            <div class="row cart-item">
+                                <!-- Здесь можно вывести информацию о продукте, например, его имя, описание и т.д. -->
+                                <div class="col-md-4">
+                                    Product ID: {{ product_id }}
+                                </div>
+                                <div class="col-md-4">
+                                    Quantity: {{ quantity }}
+                                </div>
+                                <!-- Здесь можно добавить кнопку для удаления товара из корзины -->
+                                <div class="col-md-4">
+                                    <form action="{{ url_for('remove_from_cart', product_id=product_id) }}" method="post">
+                                        <button type="submit" class="btn btn-danger">Remove</button>
+                                    </form>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    {% else %}
+                        <p>Your cart is empty.</p>
+                    {% endif %}
                 </div>
             </div>
         </div>
@@ -42,8 +42,10 @@
                 <div class="card-body">
                     <h5 class="card-title">Order Summary</h5>
                     <hr>
-                    <p class="card-text">Total Items: {{ total_items }}</p>
-                    <p class="card-text">Total Price: ${{ total_price }}</p>
+                    <!-- Здесь можно добавить общую информацию о корзине, например, общее количество товаров и общую стоимость -->
+                    <!-- Например: -->
+                    <p>Total Items: {{ total_items }}</p>
+                    <p>Total Price: ${{ total_price }}</p>
 
                     <a href="#" class="btn btn-primary">Proceed to Checkout</a>
                 </div>

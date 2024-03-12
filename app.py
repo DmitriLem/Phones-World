@@ -149,7 +149,6 @@ def search_by_name():
         """
         cursor.execute(query)
         random_products = cursor.fetchall()
-        categories = cursor.fetchall()
         conn.close()
 
         # Фильтруем категории

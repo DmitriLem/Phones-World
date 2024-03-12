@@ -149,6 +149,7 @@ def search_by_name():
         """
         cursor.execute(query)
         random_products = cursor.fetchall()
+        categories = cursor.fetchall()
         conn.close()
 
         # Фильтруем категории
@@ -163,10 +164,13 @@ def search_by_name():
 
 @app.route('/view_product/<int:product_id>')
 def view_product(product_id):
-    # Создаем соединение с базой данных
+    user_ip = request.remote_addr
+
+    # Create a connection to the database
     conn = create_connection()
     cursor = conn.cursor()
 
+    # Query to fetch product details
     query = """
     SELECT 
         p.product_id,
@@ -189,10 +193,20 @@ def view_product(product_id):
     cursor.execute(query, (product_id,))
     product = cursor.fetchone()
 
-    # Закрываем соединение
+    # Query to fetch all categories
+    cursor.execute("SELECT * FROM Categories")
+    categories = cursor.fetchall()
+
+    # Close the database connection
     conn.close()
 
-    return render_template('view_product.html', product=product)
+    # Extracting relevant information from categories
+    filtered_categories = [category for category in categories if len(category[1].split()) <= 2][:17]
+
+    # Fetch location information
+    city, postal_code = get_location_from_ip(user_ip, '86c960f33f9c64')  # Api token
+
+    return render_template('view_product.html', product=product, categories=filtered_categories, year=datetime.now().year, city=city, postal_code=postal_code)
 
 @app.route('/search/<int:category_id>')
 def search_by_category(category_id):
@@ -472,7 +486,7 @@ def add_to_cart():
     quantity = request.json.get('quantity')
     
     if not product_id or not quantity:
-        return jsonify({'error': 'Не указан идентификатор продукта или количество'}), 400
+        return jsonify({'error': 'No product identifier or quantity specified'}), 400
     
     # Получаем текущее состояние корзины из кэша
     cart = cache.get('cart') or {}
@@ -483,24 +497,28 @@ def add_to_cart():
     # Сохраняем обновленное состояние корзины в кэше
     cache.set('cart', cart)
     
-    return jsonify({'message': 'Товар успешно добавлен в корзину'}), 200
+    return jsonify({'message': 'The item has been successfully added to the cart'}), 200
 
-@app.route('/remove_from_cart/<int:product_id>', methods=['POST'])
-def remove_from_cart(product_id):
+@app.route('/remove_from_cart', methods=['POST'])
+def remove_from_cart():
+    product_id = request.form.get('product_id')
+    print(product_id, type(product_id))
+
+    if not product_id:
+        return jsonify({'error': 'No product identifier specified'}), 400
+
     # Получаем текущее состояние корзины из кэша
     cart = cache.get('cart') or {}
-    
-    # Проверяем, есть ли товар с указанным product_id в корзине
+
+    # Удаляем товар из корзины, если он там есть
     if product_id in cart:
-        # Удаляем товар из корзины
         del cart[product_id]
-        # Обновляем состояние корзины в кэше
-        cache.set('cart', cart)
-        flash('Product removed from cart successfully!', 'success')
-    else:
-        flash('Product not found in cart!', 'error')
-    
+
+    # Сохраняем обновленное состояние корзины в кэше
+    cache.set('cart', cart)
+
     return redirect('/Cart')
+
 
 if __name__ == "__main__":
     app.run(debug=True)

@@ -518,6 +518,28 @@ def remove_from_cart():
 
     return redirect('/Cart')
 
+@app.route('/buy', methods=['GET', 'POST'])
+def buy():
+    current_year = datetime.now().year
+    # Здесь вы можете получить данные о товарах, которые были добавлены в корзину
+    # И передать их в шаблон
+
+    conn = create_connection()
+    cursor = conn.cursor()
+    cursor.execute('SELECT * FROM states')
+    states = cursor.fetchall()
+    conn.close()
+    
+
+    if request.method == 'POST':
+        # Обработка данных формы оплаты
+        card_number = request.form['card_number']
+        # Другие данные карты и обработка платежа
+
+        flash('Оплата прошла успешно!')
+        return redirect(redirect('/Receipt'))
+
+    return render_template('Buy.html', current_year=current_year, states=states)
 
 if __name__ == "__main__":
     app.run(debug=True)

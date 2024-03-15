@@ -1,28 +1,145 @@
-{% extends 'base.html' %}
-
 {% block head %}
 <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
 <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+<style>
+    .payment-form {
+        max-width: 500px;
+        margin: 0 auto;
+        padding: 30px;
+        border: 1px solid #ddd;
+        border-radius: 10px;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    }
+
+    .payment-form label {
+        font-weight: bold;
+    }
+
+    .payment-form input[type="text"],
+    .payment-form input[type="email"],
+    .payment-form select {
+        width: 100%;
+        padding: 10px;
+        margin-bottom: 20px;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+        transition: border-color 0.3s;
+    }
+
+    .payment-form input[type="text"]:focus,
+    .payment-form input[type="email"]:focus,
+    .payment-form select:focus {
+        border-color: #007bff;
+        outline: none;
+    }
+
+    .payment-form button[type="submit"] {
+        width: 100%;
+        padding: 15px;
+        border: none;
+        border-radius: 5px;
+        background-color: #007bff;
+        color: #fff;
+        font-size: 16px;
+        font-weight: bold;
+        cursor: pointer;
+        transition: background-color 0.3s;
+    }
+
+    .payment-form button[type="submit"]:hover {
+        background-color: #0056b3;
+    }
+
+    /* Уменьшаем размер шрифта в выпадающем списке */
+    .payment-form select {
+        font-size: 14px;
+    }
+
+    /* Увеличиваем высоту выпадающего списка */
+    .payment-form select option {
+        font-size: 14px;
+        padding: 10px;
+    }
+</style>
+<script>
+
+</script>
 {% endblock %}
 
 {% block body %}
 <div class="container mt-5">
-    <div class="row justify-content-center">
-        <div class="col-md-8">
-            <div class="card product-card">
-                <img src="{{ product.image_url }}" class="card-img-top" alt="{{ product.name }}">
-                <div class="card-body">
-                    <h5 class="card-title">{{ product.name }}</h5>
-                    <p class="card-text">{{ product.description }}</p>
-                    <p class="card-price">Price: ${{ product.price }}</p>
-                    <form action="/checkout" method="POST">
-                        <div class="form-group">
-                            <label for="quantity">Quantity:</label>
-                            <input type="number" id="quantity" name="quantity" class="form-control" min="1" value="1">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="payment-form">
+                <form>
+                    <div class="form-group">
+                        <label for="exampleInputEmail1">Email address</label>
+                        <input type="email" class="form-control" id="exampleInputEmail1" aria-describedby="emailHelp" placeholder="Enter email" required>
+                        <small id="emailHelp" class="form-text text-muted ms-2">You will receive a receipt in your email. We'll never share your email with anyone else.</small>
+                    </div>
+                    <div class="form-group">
+                        <label for="cardNum">Card Number</label>
+                        <input type="text" class="form-control" id="cardNum" placeholder="1234 1234 1234 1234" required>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group col-md-6">
+                            <label for="mm">Expiration Month</label>
+                            <select class="form-select" id="mm" name="mm" required>
+                                <option value="" disabled selected>MM</option>
+                                {% for month in range(1, 13) %}
+                                    {% set month_str = "%02d"|format(month) %}
+                                    <option value="{{ month_str }}">{{ month_str }}</option>
+                                {% endfor %}
+                            </select>
                         </div>
-                        <button type="submit" class="btn btn-primary">Proceed to Checkout</button>
-                    </form>
-                </div>
+                        <div class="form-group col-md-6">
+                            <label for="yy">Expiration Year</label>
+                            <select class="form-select" id="yy" name="yy" required>
+                                <option value="" disabled selected>YY</option>
+                                {% set current_year = current_year %}
+                                {% for year in range(current_year, current_year + 5) %}
+                                    <option value="{{ year }}">{{ year }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="CVV">CVV</label>
+                        <input type="text" class="form-control" id="CVV" placeholder="123" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="cardName">Cardholder Name</label>
+                        <input type="text" class="form-control" id="cardName" placeholder="Cardholder Name" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="inputAddress">Address</label>
+                        <input type="text" class="form-control" id="inputAddress" placeholder="1234 Main St" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="inputAddress2">Address 2</label>
+                        <input type="text" class="form-control" id="inputAddress2" placeholder="Apartment, studio, or floor">
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group col-md-6">
+                            <label for="inputCity">City</label>
+                            <input type="text" class="form-control" id="inputCity" required>
+                        </div>
+                        <div class="form-group col-md-4">
+                            <label for="inputState">State</label>
+                            <select id="inputState" class="form-select" required>
+                                <option disabled selected>State</option>
+                                {% for state in states %}
+                                <option value="{{ state.id }}">{{ state.abbreviation }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="form-group col-md-2">
+                            <label for="inputZip">Zip</label>
+                            <input type="text" class="form-control" id="inputZip" required>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Proceed to Checkout</button>
+                </form>
             </div>
         </div>
     </div>

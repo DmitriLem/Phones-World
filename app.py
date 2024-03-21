@@ -1,9 +1,9 @@
 from flask import Flask, render_template, request, redirect, session, flash, jsonify
-import pyodbc
+import pyodbc #Library for connection our db
 import random
 import requests
 from datetime import datetime
-import os
+import os #Search folde
 from werkzeug.utils import secure_filename
 import uuid
 import decimal
@@ -521,25 +521,45 @@ def remove_from_cart():
 @app.route('/buy', methods=['GET', 'POST'])
 def buy():
     current_year = datetime.now().year
-    # Здесь вы можете получить данные о товарах, которые были добавлены в корзину
-    # И передать их в шаблон
-
+    
+    # Retrieve user's IP address
+    user_ip = request.remote_addr
+    # Create a connection to the database
     conn = create_connection()
     cursor = conn.cursor()
-    cursor.execute('SELECT * FROM states')
-    states = cursor.fetchall()
-    conn.close()
     
+    # Fetch categories from the database
+    cursor.execute("SELECT * FROM Categories")
+    categories = cursor.fetchall()
+    
+    cursor.execute("SELECT * FROM States")
+    states = cursor.fetchall()
+
+    # Close the database connection
+    conn.close()
+
+    # Filter categories
+    filtered_categories = [category for category in categories if len(category.name.split()) <= 2][:17]
+    # Get user's city and postal code from IP
+    city, postal_code = get_location_from_ip(user_ip, '86c960f33f9c64')  # Api token
 
     if request.method == 'POST':
-        # Обработка данных формы оплаты
+        # Processing payment form data
         card_number = request.form['card_number']
-        # Другие данные карты и обработка платежа
+        # Other card data and payment processing
+        
+        flash('Payment successful!')
+        return redirect('/Receipt')  # Redirect to receipt page after successful payment
 
-        flash('Оплата прошла успешно!')
-        return redirect(redirect('/Receipt'))
+    # Retrieve information about the products added to cart
+    # Assuming you have a function to fetch cart items based on user's IP
+    # Modify the following line according to your implementation
+    # cart_products = get_cart_items(user_ip)
+    cart_products = []  # Placeholder for cart products
 
-    return render_template('Buy.html', current_year=current_year, states=states)
+    return render_template('Buy.html',year=datetime.now().year, current_year=current_year, categories=filtered_categories,
+                           city=city, postal_code=postal_code, cart_products=cart_products, states=states)
+
 
 if __name__ == "__main__":
     app.run(debug=True)

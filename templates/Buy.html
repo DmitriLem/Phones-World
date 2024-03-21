@@ -1,3 +1,5 @@
+{% extends 'base.html' %}
+
 {% block head %}
 <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
 <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
@@ -61,9 +63,6 @@
         padding: 10px;
     }
 </style>
-<script>
-
-</script>
 {% endblock %}
 
 {% block body %}
@@ -74,12 +73,35 @@
                 <form>
                     <div class="form-group">
                         <label for="exampleInputEmail1">Email address</label>
-                        <input type="email" class="form-control" id="exampleInputEmail1" aria-describedby="emailHelp" placeholder="Enter email" required>
+                        <input type="email" id="emailAddress" class="form-control" placeholder="Enter email" maxlength="50" required>
                         <small id="emailHelp" class="form-text text-muted ms-2">You will receive a receipt in your email. We'll never share your email with anyone else.</small>
                     </div>
                     <div class="form-group">
-                        <label for="cardNum">Card Number</label>
-                        <input type="text" class="form-control" id="cardNum" placeholder="1234 1234 1234 1234" required>
+                        <div class="row">
+                            <div class="col-sm-4"><label for="cardNum">Card Number</label></div>
+                            <div id="visa" style="display: none;" class="col"><img width="20%" height="auto" src="https://upload.wikimedia.org/wikipedia/commons/thumb/d/d6/Visa_2021.svg/640px-Visa_2021.svg.png" alt=""></div>
+                            <div id="mc" style="display: none;" class="col"><img width="13%" height="auto" src="https://upload.wikimedia.org/wikipedia/commons/thumb/a/a4/Mastercard_2019_logo.svg/1200px-Mastercard_2019_logo.svg.png" alt=""></div>
+                            <div id="disc" style="display: none;" class="col"><img width="27%" height="auto" src="https://upload.wikimedia.org/wikipedia/commons/thumb/5/57/Discover_Card_logo.svg/2560px-Discover_Card_logo.svg.png" alt=""></div>
+                            <div id="amerExp" style="display: none;" class="col"><img width="20%" height="auto" src="https://logosarchive.com/wp-content/uploads/2021/07/American-Express-logo.png" alt=""></div>
+                            <div id="divBtnChange" class="col text-end" hidden><a class="ms-2">Change</a></div>
+                        </div>
+                        <div id="divForCardNumber" class="form-group">
+                            <input type="text" class="form-control" id="cardNum" placeholder="1234 1234 1234 1234" maxlength="16" minlength="15" required>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group col-md-3">
+                                <input type="text" class="form-control" id="cardNum1" placeholder="1234" maxlength="4" minlength="0" hidden>
+                            </div>
+                            <div class="form-group col-md-3">
+                                <input type="text" class="form-control" id="cardNum2" placeholder="1234" maxlength="4" minlength="0" hidden>
+                            </div>
+                            <div class="form-group col-md-3">
+                                <input type="text" class="form-control" id="cardNum3" placeholder="1234" maxlength="4" minlength="0" hidden>
+                            </div>
+                            <div class="form-group col-md-3">
+                                <input type="text" class="form-control" id="cardNum4" placeholder="1234" maxlength="4" minlength="0" hidden>
+                            </div>
+                        </div>               
                     </div>
                     <div class="form-row">
                         <div class="form-group col-md-6">
@@ -105,15 +127,15 @@
                     </div>
                     <div class="form-group">
                         <label for="CVV">CVV</label>
-                        <input type="text" class="form-control" id="CVV" placeholder="123" required>
+                        <input type="password" class="form-control" id="CVV" placeholder="123" maxlength="4" minlength="3" required>
                     </div>
                     <div class="form-group">
                         <label for="cardName">Cardholder Name</label>
-                        <input type="text" class="form-control" id="cardName" placeholder="Cardholder Name" required>
+                        <input type="text" class="form-control" id="cardName" placeholder="Cardholder Name" maxlength="50" minlength="3" required>
                     </div>
                     <div class="form-group">
                         <label for="inputAddress">Address</label>
-                        <input type="text" class="form-control" id="inputAddress" placeholder="1234 Main St" required>
+                        <input type="text" class="form-control" id="inputAddress" placeholder="1234 Main St" maxlength="50" minlength="3" required>
                     </div>
                     <div class="form-group">
                         <label for="inputAddress2">Address 2</label>
@@ -122,12 +144,12 @@
                     <div class="form-row">
                         <div class="form-group col-md-6">
                             <label for="inputCity">City</label>
-                            <input type="text" class="form-control" id="inputCity" required>
+                            <input type="text" class="form-control" id="inputCity" maxlength="50" minlength="3" required>
                         </div>
                         <div class="form-group col-md-4">
                             <label for="inputState">State</label>
                             <select id="inputState" class="form-select" required>
-                                <option disabled selected>State</option>
+                                <option value="" disabled selected>State</option>
                                 {% for state in states %}
                                 <option value="{{ state.id }}">{{ state.abbreviation }}</option>
                                 {% endfor %}
@@ -135,10 +157,11 @@
                         </div>
                         <div class="form-group col-md-2">
                             <label for="inputZip">Zip</label>
-                            <input type="text" class="form-control" id="inputZip" required>
+                            <input type="text" class="form-control" id="inputZip" maxlength="5" minlength="5" required>
                         </div>
                     </div>
-                    <button type="submit" class="btn btn-primary">Proceed to Checkout</button>
+                    <button type="submit" class="btn btn-primary" id="checkoutBtn" onclick="validateForm()">Proceed to Checkout</button>
+                    <label class="text-center text-danger" id="txtError"></label>
                 </form>
             </div>
         </div>

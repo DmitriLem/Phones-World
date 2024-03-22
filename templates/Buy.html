@@ -70,7 +70,7 @@
     <div class="row">
         <div class="col-md-12">
             <div class="payment-form">
-                <form>
+                <form id="paymentForm">
                     <div class="form-group">
                         <label for="exampleInputEmail1">Email address</label>
                         <input type="email" id="emailAddress" class="form-control" placeholder="Enter email" maxlength="50" required>
@@ -83,23 +83,23 @@
                             <div id="mc" style="display: none;" class="col"><img width="13%" height="auto" src="https://upload.wikimedia.org/wikipedia/commons/thumb/a/a4/Mastercard_2019_logo.svg/1200px-Mastercard_2019_logo.svg.png" alt=""></div>
                             <div id="disc" style="display: none;" class="col"><img width="27%" height="auto" src="https://upload.wikimedia.org/wikipedia/commons/thumb/5/57/Discover_Card_logo.svg/2560px-Discover_Card_logo.svg.png" alt=""></div>
                             <div id="amerExp" style="display: none;" class="col"><img width="20%" height="auto" src="https://logosarchive.com/wp-content/uploads/2021/07/American-Express-logo.png" alt=""></div>
-                            <div id="divBtnChange" class="col text-end" hidden><a class="ms-2">Change</a></div>
+                            <div id="divBtnChange" class="col text-end" style="display: none;"><a class="ms-2 btn btn-sm btn-link" onclick="ChangeCardNum()">Change</a></div>
                         </div>
                         <div id="divForCardNumber" class="form-group">
-                            <input type="text" class="form-control" id="cardNum" placeholder="1234 1234 1234 1234" maxlength="16" minlength="15" required>
+                            <input type="text" class="form-control" id="cardNum" placeholder="1234 1234 1234 1234" maxlength="16" minlength="15" onkeypress="return AllowOnlyNumbers(event)" required>
                         </div>
                         <div class="form-row">
                             <div class="form-group col-md-3">
-                                <input type="text" class="form-control" id="cardNum1" placeholder="1234" maxlength="4" minlength="0" hidden>
+                                <input type="text" class="form-control" id="cardNum1" placeholder="1234" maxlength="4" minlength="0" style="display: none;" readonly>
                             </div>
                             <div class="form-group col-md-3">
-                                <input type="text" class="form-control" id="cardNum2" placeholder="1234" maxlength="4" minlength="0" hidden>
+                                <input type="text" class="form-control" id="cardNum2" placeholder="1234" maxlength="4" minlength="0" style="display: none;" readonly>
                             </div>
                             <div class="form-group col-md-3">
-                                <input type="text" class="form-control" id="cardNum3" placeholder="1234" maxlength="4" minlength="0" hidden>
+                                <input type="text" class="form-control" id="cardNum3" placeholder="1234" maxlength="4" minlength="0" style="display: none;" readonly>
                             </div>
                             <div class="form-group col-md-3">
-                                <input type="text" class="form-control" id="cardNum4" placeholder="1234" maxlength="4" minlength="0" hidden>
+                                <input type="text" class="form-control" id="cardNum4" placeholder="1234" maxlength="4" minlength="0" style="display: none;" readonly>
                             </div>
                         </div>               
                     </div>
@@ -127,7 +127,7 @@
                     </div>
                     <div class="form-group">
                         <label for="CVV">CVV</label>
-                        <input type="password" class="form-control" id="CVV" placeholder="123" maxlength="4" minlength="3" required>
+                        <input type="password" class="form-control" id="CVV" placeholder="123" maxlength="4" minlength="3" onkeypress="return AllowOnlyNumbers(event)" required>
                     </div>
                     <div class="form-group">
                         <label for="cardName">Cardholder Name</label>
@@ -157,7 +157,7 @@
                         </div>
                         <div class="form-group col-md-2">
                             <label for="inputZip">Zip</label>
-                            <input type="text" class="form-control" id="inputZip" maxlength="5" minlength="5" required>
+                            <input type="text" class="form-control" id="inputZip" maxlength="5" minlength="5" onkeypress="return AllowOnlyNumbers(event)" required>
                         </div>
                     </div>
                     <button type="submit" class="btn btn-primary" id="checkoutBtn" onclick="validateForm()">Proceed to Checkout</button>

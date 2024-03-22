@@ -3,34 +3,61 @@
 {% block head %}
 <!-- Добавим ссылку на CSS-файл для стилизации корзины -->
 <link rel="stylesheet" href="{{ url_for('static', filename='css/cart.css') }}">
+<style>
+    /* Стили для ссылок внутри карточек товаров */
+    .card-body a {
+        color: white; /* Цвет текста по умолчанию (белый) */
+        text-decoration: none; /* Убираем декорацию (подчеркивание) по умолчанию */
+        transition: text-decoration 0.3s ease-in-out; /* Анимация для подчеркивания */
+    }
+
+    /* При наведении курсора на ссылку добавляем подчеркивание */
+    .card-body a:hover {
+        text-decoration: underline; /* Подчеркивание при наведении */
+    }
+</style>
 {% endblock %}
 
 {% block body %}
 <div class="container mt-5">
     <div class="row">
         <div class="col-md-8">
-            <div class="card">
+            <div class="card mb-3">
                 <div class="card-body">
                     <h5 class="card-title">Your Cart</h5>
                     <hr>
-                    {% if cart %}
-                        {% for product_id, quantity in cart.items() %}
-                            <div class="row cart-item">
-                                <!-- Здесь можно вывести информацию о продукте, например, его имя, описание и т.д. -->
+                    {% if products %}
+                        {% for item in products %}
+                            <div class="row g-0">
                                 <div class="col-md-4">
-                                    Product ID: {{ product_id }}
+                                    <a href="{{ url_for('view_product', product_id=item.product.product_id) }}">
+                                        {% if item.product.image_url.startswith('http') %}
+                                            <img src="{{ item.product.image_url }}" class="img-fluid" alt="{{ item.product.name }}">
+                                        {% else %}
+                                            <img src="/static/userUploadPhotos/{{ item.product.image_url }}" alt="{{ item.product.name }}" class="img-fluid">
+                                        {% endif %}
+                                    </a>
                                 </div>
-                                <div class="col-md-4">
-                                    Quantity: {{ quantity }}
-                                </div>
-                                <!-- Здесь можно добавить кнопку для удаления товара из корзины -->
-                                <div class="col-md-4">
-                                    <form action="/remove_from_cart" method="post">
-                                        <input type="hidden" name="product_id" value="{{ product_id }}">
-                                        <button type="submit" class="btn btn-danger">Remove</button>
-                                    </form>
+                                <div class="col-md-8">
+                                    <div class="card-body">
+                                        <div class="row">
+                                            <div class="col">
+                                                <h6><a href="{{ url_for('view_product', product_id=item.product.product_id) }}">{{ item.product.name }}</a></h6>
+                                            </div>
+                                            <div class="col text-end">
+                                                <h5><a href="{{ url_for('view_product', product_id=item.product.product_id) }}">${{ item.product.price }}</a></h5>
+                                            </div>
+                                        </div>
+                                        <p><a href="{{ url_for('view_product', product_id=item.product.product_id) }}">{{ item.product.description | truncate(length=55, end='...') }}</a></p>
+                                        <p><a href="{{ url_for('view_product', product_id=item.product.product_id) }}">Quantity: {{ item.quantity }}</a></p>
+                                        <form action="/remove_from_cart" method="post">
+                                            <input type="hidden" name="product_id" value="{{ item.product.product_id }}">
+                                            <button type="submit" class="btn btn-danger">Remove</button>
+                                        </form>
+                                    </div>
                                 </div>
                             </div>
+                            <hr>
                         {% endfor %}
                     {% else %}
                         <p>Your cart is empty.</p>
@@ -43,11 +70,8 @@
                 <div class="card-body">
                     <h5 class="card-title">Order Summary</h5>
                     <hr>
-                    <!-- Здесь можно добавить общую информацию о корзине, например, общее количество товаров и общую стоимость -->
-                    <!-- Например: -->
                     <p>Total Items: {{ total_items }}</p>
                     <p>Total Price: ${{ total_price }}</p>
-
                     <a href="#" class="btn btn-primary">Proceed to Checkout</a>
                 </div>
             </div>

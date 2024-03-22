@@ -461,7 +461,11 @@ def cart():
 
     # Получаем содержимое корзины из кэша
     cart = cache.get('cart') or {}
-    
+    products_in_cart = []
+    print("Cart:", cart)
+    total_items = 0
+    total_price = 0
+
     # Создаем соединение с базой данных
     conn = create_connection()
     cursor = conn.cursor()
@@ -469,14 +473,23 @@ def cart():
     cursor.execute("SELECT * FROM Categories")
     categories = cursor.fetchall()
 
+    for product_id, quantity in cart.items():
+        cursor.execute("SELECT * FROM Products WHERE product_id = ?", (product_id,))
+        product = cursor.fetchone()  # Замените product = cursor.fetchone() на products_in_cart.append(...) 
+        if product:
+            total_items += quantity
+            total_price += quantity * product.price
+            products_in_cart.append({'product': product, 'quantity': quantity})
+
     # Закрываем соединение
     conn.close()
 
     filtered_categories = [category for category in categories if len(category.name.split()) <= 2][:17]
 
-    city, postal_code = get_location_from_ip(user_ip, '86c960f33f9c64') #Api token
+    city, postal_code = get_location_from_ip(user_ip, '86c960f33f9c64')  # Api token
 
-    return render_template('Cart.html', year=datetime.now().year, categories=filtered_categories, city=city, postal_code=postal_code, cart=cart)
+    return render_template('Cart.html', year=datetime.now().year, categories=filtered_categories, city=city,
+                           postal_code=postal_code, cart=cart, products=products_in_cart, total_items=total_items, total_price=total_price)
 
 
 @app.route('/add_to_cart', methods=['POST'])
@@ -500,6 +513,7 @@ def add_to_cart():
 
 @app.route('/remove_from_cart', methods=['POST'])
 def remove_from_cart():
+
     product_id = request.form.get('product_id')
     print(product_id, type(product_id))
 

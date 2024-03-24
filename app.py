@@ -491,7 +491,6 @@ def cart():
     return render_template('Cart.html', year=datetime.now().year, categories=filtered_categories, city=city,
                            postal_code=postal_code, cart=cart, products=products_in_cart, total_items=total_items, total_price=total_price)
 
-
 @app.route('/add_to_cart', methods=['POST'])
 def add_to_cart():
     product_id = request.json.get('product_id')
@@ -532,9 +531,14 @@ def remove_from_cart():
 
     return redirect('/Cart')
 
-@app.route('/buy', methods=['GET', 'POST'])
+@app.route('/buy', methods=['GET'])
 def buy():
     current_year = datetime.now().year
+    cart = cache.get('cart') or {}
+    products_in_cart = []
+    print("Cart:", cart)
+    total_items = 0
+    total_price = 0
     
     # Retrieve user's IP address
     user_ip = request.remote_addr
@@ -549,6 +553,14 @@ def buy():
     cursor.execute("SELECT * FROM States")
     states = cursor.fetchall()
 
+    for product_id, quantity in cart.items():
+        cursor.execute("SELECT * FROM Products WHERE product_id = ?", (product_id,))
+        product = cursor.fetchone()  # Замените product = cursor.fetchone() на products_in_cart.append(...) 
+        if product:
+            total_items += quantity
+            total_price += quantity * product.price
+            products_in_cart.append({'product': product, 'quantity': quantity})
+
     # Close the database connection
     conn.close()
 
@@ -557,22 +569,78 @@ def buy():
     # Get user's city and postal code from IP
     city, postal_code = get_location_from_ip(user_ip, '86c960f33f9c64')  # Api token
 
-    if request.method == 'POST':
-        # Processing payment form data
-        card_number = request.form['card_number']
-        # Other card data and payment processing
-        
-        flash('Payment successful!')
-        return redirect('/Receipt')  # Redirect to receipt page after successful payment
+    print("Data:", products_in_cart, total_items, total_price)
+    
+    if not products_in_cart:
+        return redirect("/Cart")
 
-    # Retrieve information about the products added to cart
-    # Assuming you have a function to fetch cart items based on user's IP
-    # Modify the following line according to your implementation
-    # cart_products = get_cart_items(user_ip)
-    cart_products = []  # Placeholder for cart products
+    return render_template('Buy.html', year=current_year, current_year=current_year, categories=filtered_categories,
+                           city=city, postal_code=postal_code, cart_products=products_in_cart, total_items=total_items,
+                           total_price=total_price, states=states)
 
-    return render_template('Buy.html',year=datetime.now().year, current_year=current_year, categories=filtered_categories,
-                           city=city, postal_code=postal_code, cart_products=cart_products, states=states)
+@app.route('/proceed_checkout', methods=['POST'])
+def proceed_checkout():
+
+
+    
+    return redirect('/receipt')
+
+@app.route('/receipt', methods=['GET'])
+def receipt():
+
+    #Create all logic here too (Show receipt with all data)
+    #I'll do it when finish the proceed_checkout
+
+    return render_template('receipt.html')
+
+@app.route('/buyProduct', methods=['POST'])
+def buyProduct():
+    current_year = datetime.now().year
+    product_id = request.form.get('productId')
+    print(product_id)
+    cart = {product_id: 1}
+    products_in_cart = []
+    print("Cart:", cart)
+    total_items = 0
+    total_price = 0
+    
+    # Retrieve user's IP address
+    user_ip = request.remote_addr
+    # Create a connection to the database
+    conn = create_connection()
+    cursor = conn.cursor()
+    
+    # Fetch categories from the database
+    cursor.execute("SELECT * FROM Categories")
+    categories = cursor.fetchall()
+    
+    cursor.execute("SELECT * FROM States")
+    states = cursor.fetchall()
+
+    for product_id, quantity in cart.items():
+        cursor.execute("SELECT * FROM Products WHERE product_id = ?", (product_id,))
+        product = cursor.fetchone()  # Замените product = cursor.fetchone() на products_in_cart.append(...) 
+        if product:
+            total_items += quantity
+            total_price += quantity * product.price
+            products_in_cart.append({'product': product, 'quantity': quantity})
+
+    # Close the database connection
+    conn.close()
+
+    # Filter categories
+    filtered_categories = [category for category in categories if len(category.name.split()) <= 2][:17]
+    # Get user's city and postal code from IP
+    city, postal_code = get_location_from_ip(user_ip, '86c960f33f9c64')  # Api token
+
+    print("Data:", products_in_cart, total_items, total_price)
+    
+    if not products_in_cart:
+        return redirect("/Cart")
+
+    return render_template('Buy.html', year=current_year, current_year=current_year, categories=filtered_categories,
+                           city=city, postal_code=postal_code, cart_products=products_in_cart, total_items=total_items,
+                           total_price=total_price, states=states)
 
 
 if __name__ == "__main__":

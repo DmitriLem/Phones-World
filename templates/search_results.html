@@ -54,7 +54,10 @@
                             </div>
                             <div class="col text-end">
                                 <button class="btn btn-outline-success btn-add-to-cart" onclick="addToCart('{{ product.product_id }}', 1)">Add to Cart</button>
-                                <button class="btn btn-outline-primary btn-buy">Buy</button>
+                                <form action="/buyProduct" method="POST">
+                                    <input type="hidden" name="productId" value="{{ product.product_id }}">
+                                    <button type="submit" class="btn btn-outline-primary btn-buy">Buy</button>
+                                </form>
                             </div>
                         </div>
                         {% endif %}

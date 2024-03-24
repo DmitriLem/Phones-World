@@ -257,11 +257,34 @@ function ValidData() {
 function validateForm() {
     // Выполните все проверки данных здесь
     if (ValidData()) {
-        // Здесь можно добавить код для отправки данных формы на сервер
-        alert('Form submitted successfully!');
-        // Очистка формы после успешной отправки
-        document.getElementById('txtError').innerText = ''; // Очищаем сообщение об ошибке
-        document.getElementById('paymentForm').reset(); // Очищаем все поля формы
-        ChangeCardNum(); // Сброс отображения номера карты и изображений типа карты
+        //Если все хорошо, то со всеми данными идти в /proceed_checkout
+        SentData();
     }
+}
+
+function SentData() {
+    // Создаем объект FormData для сбора данных формы
+    var formData = new FormData(document.getElementById('paymentForm'));
+
+    // Выполняем все необходимые проверки данных формы здесь
+
+    // Отправляем данные на сервер
+    fetch('/proceed_checkout', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => {
+        if (response.ok) {
+            // Данные успешно отправлены
+            document.getElementById('paymentForm').reset(); // Очищаем форму после успешной отправки
+            alert('Payment processed successfully!'); // Выводим сообщение об успешной обработке
+        } else {
+            throw new Error('Error occurred while processing payment.');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        // Обработка ошибок при отправке данных на сервер
+        document.getElementById('txtError').textContent = 'Error occurred while processing payment. Please try again later.';
+    });
 }

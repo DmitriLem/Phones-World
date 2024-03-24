@@ -72,7 +72,9 @@
                     <hr>
                     <p>Total Items: {{ total_items }}</p>
                     <p>Total Price: ${{ total_price }}</p>
-                    <a href="#" class="btn btn-primary">Proceed to Checkout</a>
+                    {% if total_items != 0 %}
+                        <a href="{{ url_for('buy', cart=cart, total_items=total_items, total_price=total_price) }}" class="btn btn-primary">Proceed to Checkout</a>
+                    {% endif %}
                 </div>
             </div>
         </div>

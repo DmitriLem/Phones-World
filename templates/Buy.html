@@ -62,14 +62,103 @@
         font-size: 14px;
         padding: 10px;
     }
+
+    /* Стили для списка товаров */
+    .item-list {
+        list-style-type: none;
+        padding: 0;
+    }
+
+    .item-list li {
+        margin-bottom: 10px;
+        border: 1px solid #ddd;
+        padding: 10px;
+        border-radius: 5px;
+    }
+
+    .item-list li img {
+        max-width: 50px;
+        max-height: 50px;
+        margin-right: 10px;
+    }
 </style>
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+    const stateSelect = document.getElementById('inputState');
+    const taxDisplay = document.getElementById('taxNum');
+    const totalDisplay = document.getElementById('totalAmount');
+
+    // Обработчик события изменения выбора штата
+    stateSelect.addEventListener('change', function () {
+        const selectedOption = stateSelect.options[stateSelect.selectedIndex];
+        const taxPercentage = parseFloat(selectedOption.getAttribute('data-tax'));
+
+        // Обновление отображения налога
+        taxDisplay.textContent = taxPercentage;
+
+        // Вызов функции для пересчета общей суммы с учетом налога
+        calculateTotalWithTax(taxPercentage);
+    });
+
+    // Функция для пересчета общей суммы с учетом налога
+    function calculateTotalWithTax(taxPercentage) {
+        const totalAmount = parseFloat('{{ total_price }}');
+        const taxAmount = totalAmount * (taxPercentage / 100);
+        const totalWithTax = totalAmount + taxAmount;
+
+        // Обновление отображения общей суммы с налогом
+        totalDisplay.textContent = totalWithTax.toFixed(2);
+    }
+});
+
+</script>
 {% endblock %}
 
 {% block body %}
 <div class="container mt-5">
     <div class="row">
-        <div class="col-md-12">
+        <!-- Левая секция для отображения товаров из корзины -->
+        <section class="col-md-6">
+            <h4 class="mb-4 ms-3">Items for Payment</h4>
+            <h4 class="mb-4 ms-3">Total with Tax: $<span id="totalAmount">{{ total_price }}</span></h4>
+            <ul class="list-group">
+                {% if cart_products %}
+                    <li class="list-group-item">
+                        <span>Total: ${{ total_price }}</span>
+                        <span class="ms-5">Tax:</span>
+                        <span id="taxNum">0</span>
+                        <span>%</span>
+                    </li>
+                    {% for item in cart_products %}
+                        <li class="list-group-item">
+                            <div class="row align-items-center">
+                                <div class="col-md-4">
+                                    {% if item.product.image_url.startswith('http') %}
+                                            <img src="{{ item.product.image_url }}" class="img-fluid" alt="{{ item.product.name }}">
+                                        {% else %}
+                                            <img src="/static/userUploadPhotos/{{ item.product.image_url }}" alt="{{ item.product.name }}" class="img-fluid">
+                                        {% endif %}
+                                </div>
+                                <div class="col-md-8">
+                                    <h5>{{ item.product.name }}</h5>
+                                    <p>{{ item.product.description | truncate(length=55, end='...')  }}</p>
+                                    <p><strong>Price:</strong> ${{ item.product.price }}</p>
+                                    <p><strong>Quantity:</strong> {{ item.quantity }}</p>
+                                </div>
+                            </div>
+                        </li>
+                    {% endfor %}
+                {% else %}
+                    <li class="list-group-item">No items in cart.</li>
+                {% endif %}
+            </ul>
+        </section>
+        
+        <!-- Правая секция для формы оплаты -->
+        <section class="col-md-6">
             <div class="payment-form">
+                <h4>Payment Details</h4>
+                <hr>
                 <form id="paymentForm">
                     <div class="form-group">
                         <label for="exampleInputEmail1">Email address</label>
@@ -151,7 +240,7 @@
                             <select id="inputState" class="form-select" required>
                                 <option value="" disabled selected>State</option>
                                 {% for state in states %}
-                                <option value="{{ state.id }}">{{ state.abbreviation }}</option>
+                                <option value="{{ state.id }}" data-tax="{{ state.tax_percentage }}">{{ state.abbreviation }}</option>
                                 {% endfor %}
                             </select>
                         </div>
@@ -164,7 +253,7 @@
                     <label class="text-center text-danger" id="txtError"></label>
                 </form>
             </div>
-        </div>
+        </section>
     </div>
 </div>
 {% endblock %}

@@ -263,28 +263,28 @@ function validateForm() {
 }
 
 function SentData() {
-    // Создаем объект FormData для сбора данных формы
-    var formData = new FormData(document.getElementById('paymentForm'));
+    const form = document.getElementById('paymentForm');
+        const formData = new FormData(form);
 
-    // Выполняем все необходимые проверки данных формы здесь
+        // Получение данных total_price и state_tax_percentage из скрытых полей
+        const total_price = document.getElementById('total_price').value;
+        const state_tax_percentage = document.getElementById('state_tax_percentage').value;
 
-    // Отправляем данные на сервер
-    fetch('/proceed_checkout', {
-        method: 'POST',
-        body: formData
-    })
-    .then(response => {
-        if (response.ok) {
-            // Данные успешно отправлены
-            document.getElementById('paymentForm').reset(); // Очищаем форму после успешной отправки
-            alert('Payment processed successfully!'); // Выводим сообщение об успешной обработке
-        } else {
-            throw new Error('Error occurred while processing payment.');
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        // Обработка ошибок при отправке данных на сервер
-        document.getElementById('txtError').textContent = 'Error occurred while processing payment. Please try again later.';
-    });
+        // Добавление данных к объекту FormData
+        formData.append('total_price', total_price);
+        formData.append('state_tax_percentage', state_tax_percentage);
+
+        // Отправка данных на сервер методом POST
+        fetch('/proceed_checkout', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            // Обработка ответа от сервера, например, перенаправление на страницу чекаута
+            window.location.replace('/receipt');
+        })
+        .catch(error => {
+            console.error('Error:', error);
+        });
 }

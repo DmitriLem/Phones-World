@@ -8,6 +8,7 @@ from werkzeug.utils import secure_filename
 import uuid
 import decimal
 from flask_caching import Cache
+import json
 
 app = Flask(__name__)
 app.secret_key = 'my_super_secret_key_1234567890NobodyWillGetThisKeyAnyway'
@@ -580,9 +581,44 @@ def buy():
 
 @app.route('/proceed_checkout', methods=['POST'])
 def proceed_checkout():
-
-
     
+    email = request.form.get('emailAddress')
+    card_number = request.form.get('cardNum')
+    expiration_month = request.form.get('mm')
+    expiration_year = request.form.get('yy')
+    cvv = request.form.get('CVV')
+    cardholder_name = request.form.get('cardName')
+    address = request.form.get('inputAddress')
+    address2 = request.form.get('inputAddress2')
+    city = request.form.get('inputCity')
+    state = request.form.get('inputState')
+    zip_code = request.form.get('inputZip')
+    total_price_str = request.form.get('total_price')
+    total_price = float(request.form.get('total_price', 0))  # Получение total_price из формы
+    state_tax_percentage = float(request.form.get('inputState', 0))  # Получение state.tax_percentage из формы
+    
+    product_ids = request.form.getlist('product_id[]')
+    quantities = request.form.getlist('quantity[]')
+    # Объединение ID продуктов и количества в пары
+    product_quantity_pairs = list(zip(product_ids, quantities))
+    
+    print('Email:', email)
+    print('Card Number:', card_number)
+    print('Expiration Month:', expiration_month)
+    print('Expiration Year:', expiration_year)
+    print('CVV:', cvv)
+    print('Cardholder Name:', cardholder_name)
+    print('Address:', address)
+    print('Address 2:', address2)
+    print('City:', city)
+    print('State:', state)
+    print('Zip Code:', zip_code)
+    print('Total Price:', total_price)
+    print('State Tax Percentage:', state_tax_percentage)
+    print("ID and quantities pairs:", product_quantity_pairs)
+    print('ID:', product_ids)
+    print('quantities', quantities)
+
     return redirect('/receipt')
 
 @app.route('/receipt', methods=['GET'])

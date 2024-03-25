@@ -579,6 +579,18 @@ def buy():
                            city=city, postal_code=postal_code, cart_products=products_in_cart, total_items=total_items,
                            total_price=total_price, states=states)
 
+def generate_order_number(existing_order_numbers):
+    # Генерация нового уникального OrderNumber
+    while True:
+        new_order_number = random.randint(100000, 99999999)  # Генерация случайного числа от 100000 до 99999999
+        if new_order_number not in existing_order_numbers:
+            return new_order_number
+        
+def calculate_total_cost(price, tax_rate):
+    tax_amount = price * (float(tax_rate) / 100)
+    total_cost = price + tax_amount
+    return total_cost
+
 @app.route('/proceed_checkout', methods=['POST'])
 def proceed_checkout():
     
@@ -601,23 +613,48 @@ def proceed_checkout():
     quantities = request.form.getlist('quantity[]')
     # Объединение ID продуктов и количества в пары
     product_quantity_pairs = list(zip(product_ids, quantities))
+
+    print('Ready to sent the data.')
     
-    print('Email:', email)
-    print('Card Number:', card_number)
-    print('Expiration Month:', expiration_month)
-    print('Expiration Year:', expiration_year)
-    print('CVV:', cvv)
-    print('Cardholder Name:', cardholder_name)
-    print('Address:', address)
-    print('Address 2:', address2)
-    print('City:', city)
-    print('State:', state)
-    print('Zip Code:', zip_code)
-    print('Total Price:', total_price)
-    print('State Tax Percentage:', state_tax_percentage)
-    print("ID and quantities pairs:", product_quantity_pairs)
-    print('ID:', product_ids)
-    print('quantities', quantities)
+    conn = create_connection()
+    cursor = conn.cursor()
+
+        # Получение всех существующих OrderNumber из таблицы PurchaseLogs
+    cursor.execute("SELECT OrderNumber FROM PurchaseLogs")
+    existing_order_numbers = [row[0] for row in cursor.fetchall()]
+
+        # Генерация нового уникального OrderNumber
+    new_order_number = generate_order_number(existing_order_numbers)
+
+    cursor.execute(f"SELECT tax_percentage FROM States Where id = {state}")
+    tax = [row[0] for row in cursor.fetchall()]
+
+        # Цикл для обновления количества товаров и вставки данных о покупке
+    for product_id, quantity in product_quantity_pairs:
+        # SQL-запрос для уменьшения количества товара
+        update_query = f"UPDATE Inventory SET Quantity = Quantity - {quantity} WHERE Product_ID = {product_id}"
+        cursor.execute(update_query)
+        print(cursor.rowcount)  # Выводит количество измененных строк (должно быть больше 0, если запрос отработал успешно)
+        print('State tax percent from site:',state_tax_percentage, 'State tax percent from db:', tax)
+
+        tax_rate = tax[0]  # Получаем единственное значение налога из списка
+        total_with_tax = calculate_total_cost(total_price, tax_rate)
+
+        print(total_with_tax)
+
+            # SQL-запрос для вставки данных о покупке в таблицу PurchaseLogs с новым OrderNumber
+        insert_query = f"INSERT INTO PurchaseLogs (OrderNumber, Email, CardNumber, ExpMMYY, " \
+                        f"CardholderName, Address1, Address2, City, StateID, ZipCode, " \
+                        f"TotalPriceNoTax, TotalPriceTax, StatusID, ProductID, Quantity, PurchaseDate) " \
+                        f"VALUES ({new_order_number}, '{email}', '{card_number}', " \
+                        f"'{expiration_month}/{expiration_year}', '{cardholder_name}', " \
+                        f"'{address}', '{address2}', '{city}', {state}, '{zip_code}', " \
+                        f"{total_price}, {total_with_tax:2f}, {1}, {product_id}, {quantity}, GETDATE())"
+        cursor.execute(insert_query)
+        conn.commit()  # Подтверждение изменений после каждой итерации цикла
+
+        # Закрытие соединения
+    conn.close()
 
     return redirect('/receipt')
 

@@ -256,35 +256,35 @@ function ValidData() {
 
 function validateForm() {
     // Выполните все проверки данных здесь
-    if (ValidData()) {
-        //Если все хорошо, то со всеми данными идти в /proceed_checkout
-        SentData();
+    if (!ValidData()) {
+        event.preventDefault();
+        //SentData();  // Эта строка вызывает функцию SentData()
     }
 }
 
 function SentData() {
     const form = document.getElementById('paymentForm');
-        const formData = new FormData(form);
+    const formData = new FormData(form);
 
-        // Получение данных total_price и state_tax_percentage из скрытых полей
-        const total_price = document.getElementById('total_price').value;
-        const state_tax_percentage = document.getElementById('state_tax_percentage').value;
+    // Получение данных total_price и state_tax_percentage из скрытых полей
+    const total_price = document.getElementById('total_price').value;
+    const state_tax_percentage = document.getElementById('state_tax_percentage').value;
 
-        // Добавление данных к объекту FormData
-        formData.append('total_price', total_price);
-        formData.append('state_tax_percentage', state_tax_percentage);
+    // Добавление данных к объекту FormData
+    formData.append('total_price', total_price);
+    formData.append('state_tax_percentage', state_tax_percentage);
 
-        // Отправка данных на сервер методом POST
-        fetch('/proceed_checkout', {
-            method: 'POST',
-            body: formData
-        })
-        .then(response => response.json())
-        .then(data => {
-            // Обработка ответа от сервера, например, перенаправление на страницу чекаута
-            window.location.replace('/receipt');
-        })
-        .catch(error => {
-            console.error('Error:', error);
-        });
+    // Отправка данных на сервер методом POST
+    fetch('/proceed_checkout', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        // Обработка ответа от сервера, например, перенаправление на страницу чекаута
+        window.location.replace('/receipt');
+    })
+    .catch(error => {
+        console.error('Error:', error);
+    });
 }

@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, session, flash, jsonify
+from flask import Flask, render_template, request, redirect, session, flash, jsonify, make_response, render_template_string, render_template
 import pyodbc #Library for connection our db
 import random
 import requests
@@ -9,6 +9,10 @@ import uuid
 import decimal
 from flask_caching import Cache
 import json
+import smtplib
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+from email.mime.image import MIMEImage
 
 app = Flask(__name__)
 app.secret_key = 'my_super_secret_key_1234567890NobodyWillGetThisKeyAnyway'
@@ -591,6 +595,118 @@ def calculate_total_cost(price, tax_rate):
     total_cost = price + tax_amount
     return total_cost
 
+def sendEmailReceipt(order_number, recipient_email):
+    conn = create_connection()
+    cursor = conn.cursor()
+
+    # Fetch order details from the database
+    insert_query = f"""SELECT 
+                        p.OrderID,
+                        p.OrderNumber,
+                        p.Email,
+                        p.CardNumber,
+                        p.ExpMMYY,
+                        p.CardholderName,
+                        p.Address1,
+                        p.Address2,
+                        p.City,
+                        states.abbreviation AS StateAbbreviation,
+                        p.ZipCode,
+                        p.TotalPriceNoTax,
+                        p.TotalPriceTax,
+                        status.StatusID AS OrderStatusID,
+                        pr.Product_id as ProductID,
+                        p.Quantity,
+                        p.PurchaseDate,
+                        states.name AS StateName,
+                        status.Description AS OrderStatus,
+                        pr.name AS ProductName,
+                        pr.category_id AS ProductCategoryID,
+                        pr.price AS ProductPrice,
+                        pr.description AS ProductDescription,
+                        pr.image_url AS ProductImageURL
+                    FROM PurchaseLogs AS p
+                    LEFT JOIN states ON p.stateID = states.id
+                    LEFT JOIN Status AS status ON p.StatusID = status.StatusID
+                    LEFT JOIN Products AS pr ON p.productID = pr.product_id
+                    WHERE p.OrderNumber = {order_number}"""
+    cursor.execute(insert_query)
+    log = cursor.fetchall()
+
+    conn.close()
+
+    # Email configuration
+    sender_email = 'YamiWrk@outlook.com'  # Ваш адрес электронной почты
+    sender_password = 'q@jau89pvgw#/Qx'  # Пароль от электронной почты
+    smtp_server = 'smtp-mail.outlook.com'
+    smtp_port = 587  # Порт для шифрования TLS
+
+    # Create message container
+    msg = MIMEMultipart()
+    msg['From'] = sender_email
+    msg['To'] = recipient_email
+    msg['Subject'] = f'Phones World. Thank you! Your Order Receipt #{order_number}'
+
+    # Create HTML content dynamically
+    html_content = GetEmailBody(order_number, log)
+
+    msg.attach(MIMEText(html_content, 'html'))
+
+    # Connect to SMTP server and send email
+    try:
+        server = smtplib.SMTP(smtp_server, smtp_port)
+        server.starttls()
+        server.login(sender_email, sender_password)
+        server.send_message(msg)
+        server.quit()
+        print('Email sent successfully!')
+        return True
+    except Exception as e:
+        print(f'Failed to send email: {e}')
+        return False
+    
+def GetEmailBody(order_number, log):
+    #Херня полнейшая. Надо переделать этот метод. Письмо отправляется, но все данные перепутаны.
+    #Хрен его знает, как это работает, надо либо изменить метод работы, либо что-то делать тут.
+    #log имеет всегда разное кол-во данных, эти данные не показываются корректно на почте.
+    #Много попыток было сделано, чтобы заставить этот метод работать правильно, но я, пока, оставлю этот метод на будущее.
+    print()
+    print('Show all data below:')
+
+    for item in log:
+        print(item)
+
+    email_body = f"""
+    <html>
+    <body>
+        <h2>Order Receipt #{order_number}</h2>
+        <p><strong>Total Price (Tax Included):</strong> ${log[0][12]}</p>
+        <p><strong>Order Status:</strong> {log[0][14]}</p>
+        <p><strong>Purchase Date:</strong> {log[0][16].strftime('%Y-%m-%d %I:%M %p')}</p>
+        <p><strong>Address:</strong> {log[0][6]} {log[0][7]}, {log[0][8]}, {log[0][18]} ({log[0][9]}), {log[0][10]}</p>
+
+        <h3>Product Details:</h3>
+    """
+
+    # Add product details with images
+    for item in log:
+        email_body += f"""
+        <div>
+            <p><strong>Product:</strong> {item[18]}</p>
+            <p><strong>Quantity:</strong> {item[17]}</p>
+            <p><strong>Price:</strong> ${item[20]}</p>
+            <p><strong>Description:</strong> {item[21]}</p>
+            <img src="{item[22]}" alt="{item[18]}" width="100" height="100">
+        </div>
+        """
+
+    email_body += """
+    </body>
+    </html>
+    """
+
+    return email_body
+
 @app.route('/proceed_checkout', methods=['POST'])
 def proceed_checkout():
     
@@ -656,15 +772,83 @@ def proceed_checkout():
         # Закрытие соединения
     conn.close()
 
-    return redirect('/receipt')
+    recipient_email = email  # Здесь должен быть ваш email, на который нужно отправить квитанцию
+    is_email_sent = sendEmailReceipt(new_order_number, recipient_email)
+    print('Is email sent?', 'Answer is', is_email_sent)
+    # Создание ответа с куки, содержащей new_order_number
+    response = make_response(redirect('/receipt'))
+    response.set_cookie('new_order_number', str(new_order_number))
+
+    return response
 
 @app.route('/receipt', methods=['GET'])
 def receipt():
+    order_number = request.cookies.get('new_order_number')
+    print(order_number)
+    user_ip = request.remote_addr
+    conn = create_connection()
+    cursor = conn.cursor()
+    # Fetch categories from the database
+    cursor.execute("SELECT * FROM Categories")
+    categories = cursor.fetchall()
+    insert_query = f"""SELECT 
+                        p.OrderID,
+                        p.OrderNumber,
+                        p.Email,
+                        p.CardNumber,
+                        p.ExpMMYY,
+                        p.CardholderName,
+                        p.Address1,
+                        p.Address2,
+                        p.City,
+                        states.abbreviation AS StateAbbreviation,
+                        p.ZipCode,
+                        p.TotalPriceNoTax,
+                        p.TotalPriceTax,
+                        status.StatusID AS OrderStatusID,
+                        pr.Product_id as ProductID,
+                        p.Quantity,
+                        p.PurchaseDate,
+                        states.name AS StateName,
+                        status.Description AS OrderStatus,
+                        pr.name AS ProductName,
+                        pr.category_id AS ProductCategoryID,
+                        pr.price AS ProductPrice,
+                        pr.description AS ProductDescription,
+                        pr.image_url AS ProductImageURL
+                    FROM PurchaseLogs AS p
+                    LEFT JOIN states ON p.stateID = states.id
+                    LEFT JOIN Status AS status ON p.StatusID = status.StatusID
+                    LEFT JOIN Products AS pr ON p.productID = pr.product_id
+                    WHERE p.OrderNumber = {order_number}"""
+    cursor.execute(insert_query)
+    log = cursor.fetchall()
+    conn.close()
+    # Filter categories
+    filtered_categories = [category for category in categories if len(category.name.split()) <= 2][:17]
+    # Get user's city and postal code from IP
+    city, postal_code = get_location_from_ip(user_ip, '86c960f33f9c64')  # Api token
 
-    #Create all logic here too (Show receipt with all data)
-    #I'll do it when finish the proceed_checkout
+    return render_template('receipt.html', year=datetime.now().year, categories=filtered_categories, city=city,
+                           postal_code=postal_code, order_number=order_number, log=log)
 
-    return render_template('receipt.html')
+@app.route('/OrderCheck', methods=['GET'])
+def orderCheck():
+
+    user_ip = request.remote_addr
+    conn = create_connection()
+    cursor = conn.cursor()
+    # Fetch categories from the database
+    cursor.execute("SELECT * FROM Categories")
+    categories = cursor.fetchall()
+    conn.close()
+    # Filter categories
+    filtered_categories = [category for category in categories if len(category.name.split()) <= 2][:17]
+    # Get user's city and postal code from IP
+    city, postal_code = get_location_from_ip(user_ip, '86c960f33f9c64')  # Api token
+
+    return render_template('enter_orderNum.html', year=datetime.now().year, categories=filtered_categories, city=city,
+                           postal_code=postal_code)
 
 @app.route('/buyProduct', methods=['POST'])
 def buyProduct():
@@ -715,6 +899,65 @@ def buyProduct():
                            city=city, postal_code=postal_code, cart_products=products_in_cart, total_items=total_items,
                            total_price=total_price, states=states)
 
+@app.route('/CheckingOrderNumber', methods=['POST'])
+def checkingOrderNumber():
+
+    order_number = request.form['orderNumber']
+    print(order_number)
+    session['order_number'] = order_number
+    return redirect('/OrderInfo')
+    
+@app.route('/OrderInfo', methods=['GET'])
+def showOrderInfo():
+    order_number = session.get('order_number')
+    session.pop('order_number', None)
+
+    user_ip = request.remote_addr
+    conn = create_connection()
+    cursor = conn.cursor()
+    # Fetch categories from the database
+    cursor.execute("SELECT * FROM Categories")
+    categories = cursor.fetchall()
+    insert_query = f"""SELECT 
+                        p.OrderID,
+                        p.OrderNumber,
+                        p.Email,
+                        p.CardNumber,
+                        p.ExpMMYY,
+                        p.CardholderName,
+                        p.Address1,
+                        p.Address2,
+                        p.City,
+                        states.abbreviation AS StateAbbreviation,
+                        p.ZipCode,
+                        p.TotalPriceNoTax,
+                        p.TotalPriceTax,
+                        status.StatusID AS OrderStatusID,
+                        pr.Product_id as ProductID,
+                        p.Quantity,
+                        p.PurchaseDate,
+                        states.name AS StateName,
+                        status.Description AS OrderStatus,
+                        pr.name AS ProductName,
+                        pr.category_id AS ProductCategoryID,
+                        pr.price AS ProductPrice,
+                        pr.description AS ProductDescription,
+                        pr.image_url AS ProductImageURL
+                    FROM PurchaseLogs AS p
+                    LEFT JOIN states ON p.stateID = states.id
+                    LEFT JOIN Status AS status ON p.StatusID = status.StatusID
+                    LEFT JOIN Products AS pr ON p.productID = pr.product_id
+                    WHERE p.OrderNumber = {order_number}"""
+    cursor.execute(insert_query)
+    log = cursor.fetchall()
+    conn.close()
+    # Filter categories
+    filtered_categories = [category for category in categories if len(category.name.split()) <= 2][:17]
+    # Get user's city and postal code from IP
+    city, postal_code = get_location_from_ip(user_ip, '86c960f33f9c64')  # Api token
+
+    return render_template('order_Info.html', year=datetime.now().year, categories=filtered_categories, city=city,
+                           postal_code=postal_code, log=log)
 
 if __name__ == "__main__":
     app.run(debug=True)

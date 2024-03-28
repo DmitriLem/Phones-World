@@ -1,0 +1,41 @@
+{% extends 'base.html' %}
+
+{% block head %}
+<!-- Добавьте ссылку на стили Font Awesome, если они еще не подключены -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+<script>
+    function allowOnlyNumbers(event) {
+    const key = event.keyCode || event.which;
+    if (!(key >= 48 && key <= 57) && key !== 8 && key !== 9 && key !== 13 && key !== 37 && key !== 39 && key !== 46) {
+        event.preventDefault();
+    }
+}
+</script>
+{% endblock %}
+
+{% block body %}
+<form id="sendForm" action="/CheckingOrderNumber" method="POST">  <!-- Изменен адрес на '/CheckingOrderNumber' -->
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-sm-6 text-center">
+            <h5>Enter the Order# of your order</h5>
+        </div>
+    </div>
+    <div class="row justify-content-center">
+        <div class="col-sm-3 ms-5">
+            <div class="input-group mb-2">
+                <div class="input-group-prepend">
+                    <div class="input-group-text ms-5">Order#</div>
+                </div>
+                <input type="text" name="orderNumber" class="form-control" id="orderNumber" onkeypress="allowOnlyNumbers(event)" placeholder="1234567890" required>
+            </div>
+        </div>
+        <div class="col-sm-2">
+            <button class="btn btn-outline-success" type="submit">
+                <i class="fas fa-check-circle mr-2"></i><span>Check</span>
+            </button>
+        </div>
+    </div>
+</div>
+</form>
+{% endblock %}

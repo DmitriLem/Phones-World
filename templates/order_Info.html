@@ -153,6 +153,7 @@
             <h1>Order Receipt</h1>
         </div>
 
+        {% if log %}
         <div class="order-details">
             <h2>Order Details</h2>
             <ul>
@@ -192,9 +193,14 @@
             <hr>
             {% endfor %}
         </div>
+        {% else %}
+        <div class="order-not-found">
+            <p>Unfortunately, the order does not exist. 😔</p>
+        </div>
+        {% endif %}
 
         <div class="continue-shopping">
-            <a href="{{ url_for('index') }}" >Continue shopping</a>
+            <a href="{{ url_for('index') }}">Home</a>
         </div>
     </div>
 </div>

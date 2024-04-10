@@ -15,6 +15,7 @@ from config import Config
 from contextlib import closing
 from werkzeug.exceptions import HTTPException
 from emailbody import GetEmailBody
+from flask import render_template
 
 app = Flask(__name__)
 app.config.from_object(Config)
@@ -143,7 +144,7 @@ def search_by_name():
 
     return render_template('search_by_name.html', results=results, search_query=search_query, categories=get_nav_categories(), city=city, postal_code=postal_code)
 
-@cache.cached(timeout=300)
+@cache.cached(timeout=3600)
 def get_product_by_id(product_id):
     conn = create_connection()
     cursor = conn.cursor()
@@ -383,14 +384,13 @@ def remove_from_cart():
 @app.route('/buy', methods=['GET', 'POST'])
 @app.route('/buyProduct', methods=['POST'])
 def buy():
+    city, postal_code = get_location_from_ip()
+    current_year = datetime.now().year
+
     if request.method == 'POST':
-        city, postal_code = get_location_from_ip()
-        current_year = datetime.now().year
         product_id = request.form['productId']
         cart = {product_id: 1}
     else:
-        city, postal_code = get_location_from_ip()
-        current_year = datetime.now().year
         cart = session.get('cart') or {}
 
     products_in_cart = []
@@ -669,10 +669,70 @@ def showOrderInfo():
 def handle_exception(e):
     return render_template('error.html', error=str(e)), e.code
 
-@app.route('/manageOrders', methods=['GET'])
+def return_purchase_query(isPost, orderNum):
+    query = """
+    SELECT 
+            p.OrderID,
+            p.OrderNumber,
+            p.Email,
+            p.CardNumber,
+            p.ExpMMYY,
+            p.CardholderName,
+            p.Address1,
+            p.Address2,
+            p.City,
+            states.abbreviation AS StateAbbreviation,
+            p.ZipCode,
+            p.TotalPriceNoTax,
+            p.TotalPriceTax,
+            status.StatusID AS OrderStatusID,
+            pr.Product_id as ProductID,
+            p.Quantity,
+            p.PurchaseDate,
+            states.name AS StateName,
+            status.Description AS OrderStatus,
+            pr.name AS ProductName,
+            pr.category_id AS ProductCategoryID,
+            pr.price AS ProductPrice,
+            pr.description AS ProductDescription,
+            pr.image_url AS ProductImageURL
+        FROM PurchaseLogs AS p
+        LEFT JOIN states ON p.stateID = states.id
+        LEFT JOIN Status AS status ON p.StatusID = status.StatusID
+        LEFT JOIN Products AS pr ON p.productID = pr.product_id
+    """
+    if orderNum:
+        query += """
+        WHERE p.OrderNumber = ?
+        """
+    return query
+
+@app.route('/manageOrders', methods=['GET', 'POST'])
 def manage_orders():
-    
-    return render_template('ManageOrders.html')
+    city, postal_code = get_location_from_ip()
+    isPost = False
+    conn = create_connection()
+    cursor = conn.cursor()
+    if request.method == 'POST':
+        data = request.form
+        order_number = data['orderNumber']
+        isPost = True
+        query = return_purchase_query(isPost, order_number)
+        cursor.execute(query, (order_number,))
+    else:
+        query = return_purchase_query(isPost, 0)
+        cursor.execute(query)
+    results = cursor.fetchall()
+    conn.close()
+    return render_template('manageOrders.html', results=results, isPost=isPost, year=datetime.now().year, categories=get_nav_categories(), city=city,
+                           postal_code=postal_code)
+
+@app.route('/more_order_info', methods=['GET', 'POST'])
+def more_order_info():
+    city, postal_code = get_location_from_ip()
+    return render_template('more_order_information.html', year=datetime.now().year, categories=get_nav_categories(), city=city,
+                           postal_code=postal_code)
+
 
 if __name__ == "__main__":
     app.run(debug=True)

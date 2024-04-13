@@ -1,7 +1,6 @@
 {% extends 'base.html' %}
 
 {% block head %}
-{% endblock %}
 <style>
     .card-number {
         font-family: monospace;
@@ -14,51 +13,89 @@
         display: inline-block;
         margin-right: 5px;
     }
+    .card-slider {
+        overflow-y: auto;
+        max-height: 100%;
+    }
+    .scrollable {
+        overflow-y: auto;
+        max-height: calc(100% - 50px); /* Adjust height as needed */
+    }
+    .animated-card {
+        animation: fadeInAnimation ease-in-out 0.5s forwards;
+    }
+    @keyframes fadeInAnimation {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    /* New styles for compact product cards */
+    .compact-card {
+        border: 1px solid #ddd;
+        border-radius: 5px;
+        padding: 10px;
+        margin-bottom: 10px;
+    }
+    .compact-card img {
+        max-width: 100px;
+        max-height: 100px;
+        margin-right: 10px;
+    }
+    .compact-card h6 {
+        font-size: 14px;
+        margin-bottom: 5px;
+    }
+    .compact-card p {
+        font-size: 12px;
+        margin-bottom: 3px;
+    }
+    .card-body {
+        height: 700px; /* Вы можете установить любую желаемую высоту */
+        overflow-y: auto; /* Добавляет полосу прокрутки, если контент выходит за пределы фиксированной высоты */
+    }
 </style>
+{% endblock %}
+
 {% block body %}
 <div class="container-fluid">
     <div class="row">
         <div class="col">
-            <div class="card">
-                <div class="card">
-                    <div class="card-header">
-                      Products Information
-                    </div>
-                    <div class="card-body">
-                            {% for item in results %}
-                                <div class="row g-0">
-                                    <div class="col-md-4">
-                                        <a href="{{ url_for('view_product', product_id=item.ProductID) }}">
-                                            {% if item.ProductImageURL.startswith('http') %}
-                                                <img src="{{ item.ProductImageURL }}" class="img-fluid" alt="{{ item.ProductImageURL }}">
-                                            {% else %}
-                                                <img src="/static/userUploadPhotos/{{ item.ProductImageURL }}" alt="{{ item.ProductImageURL }}" class="img-fluid">
-                                            {% endif %}
-                                        </a>
-                                    </div>
-                                    <div class="col-md-8">
-                                        <div class="card-body">
-                                            <div class="row">
-                                                <div class="col">
-                                                    <h6><a href="{{ url_for('view_product', product_id=item.ProductID) }}">{{ item.ProductName }}</a></h6>
-                                                </div>
-                                                <div class="col text-end">
-                                                    <h5><a href="{{ url_for('view_product', product_id=item.ProductID) }}">${{ item.ProductPrice }}</a></h5>
-                                                </div>
-                                            </div>
-                                            <p><a href="{{ url_for('view_product', product_id=item.ProductID) }}">{{ item.ProductDescription | truncate(length=55, end='...') }}</a></p>
-                                            <p><a href="{{ url_for('view_product', product_id=item.ProductID) }}">Quantity: {{ item.Quantity }}</a></p>
-                                        </div>
-                                    </div>
+            <div class="card h-100 card-slider animated-card">
+                <div class="card-header">
+                    Products Information
+                </div>
+                <div class="card-body scrollable">
+                    {% for item in results %}
+                        <div class="compact-card">
+                            <div class="row g-0">
+                                <div class="col-md-4">
+                                    <a href="{{ url_for('view_product', product_id=item.ProductID) }}">
+                                        {% if item.ProductImageURL.startswith('http') %}
+                                            <img src="{{ item.ProductImageURL }}" class="img-fluid" alt="{{ item.ProductImageURL }}">
+                                        {% else %}
+                                            <img src="/static/userUploadPhotos/{{ item.ProductImageURL }}" alt="{{ item.ProductImageURL }}" class="img-fluid">
+                                        {% endif %}
+                                    </a>
                                 </div>
-                            {% endfor %}
-                    </div>
-                  </div>
-              </div>
+                                <div class="col-md-8">
+                                    <h6><a href="{{ url_for('view_product', product_id=item.ProductID) }}">{{ item.ProductName }}</a></h6>
+                                    <p><a href="{{ url_for('view_product', product_id=item.ProductID) }}">{{ item.ProductDescription | truncate(length=55, end='...') }}</a></p>
+                                    <p><a href="{{ url_for('view_product', product_id=item.ProductID) }}">Quantity: {{ item.Quantity }}</a></p>
+                                    <p><a href="{{ url_for('view_product', product_id=item.ProductID) }}">${{ item.ProductPrice }}</a></p>
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
         </div>
         <div class="col">
-            <div class="card">
-                <div class="card">
+            <div class="card h-100 animated-card">
                     <div class="card-header">
                         Order Status
                     </div>
@@ -68,11 +105,11 @@
                                 <p><strong>Order#</strong> {{ result.OrderNumber }}</p>
                                 <hr/>
                                 <p><strong>Email:</strong> {{ result.Email }}</p>
-                                <p class="card-number"><strong>Card Number:</strong>
-                                    <span class="group">{{ result.CardNumber[:4] }}</span>
-                                    <span class="group">{{ result.CardNumber[4:8] }}</span>
-                                    <span class="group">{{ result.CardNumber[8:12] }}</span>
-                                    <span class="group">{{ result.CardNumber[12:] }}</span>
+                                <p><strong>Card Number:</strong>
+                                    <span>{{ result.CardNumber[:4] }}</span>
+                                    <span>{{ result.CardNumber[4:8] }}</span>
+                                    <span>{{ result.CardNumber[8:12] }}</span>
+                                    <span>{{ result.CardNumber[12:] }}</span>
                                 </p>
                                 <p><strong>Exp MM/YY:</strong> {{ result.ExpMMYY.split('/')[0] }}/{{ result.ExpMMYY.split('/')[1][-2:] }}</p>
                                 <p><strong>Cardholder Name:</strong> {{ result.CardholderName }}</p>
@@ -87,25 +124,39 @@
                                     </div>
                                     <div class="col text-end">
                                         <button class="btn btn-sm btn-primary text-end">Change</button>
+                                        <button hidden class="btn btn-sm btn-success text-end">Save</button>
+                                        <button hidden class="btn btn-sm btn-danger text-end">Cancel</button>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col">
+                                        <select hidden id="status" name="status" class="form-select">
+                                            {% for s in status %}
+                                                {% if s.Description == result.OrderStatus %}
+                                                    <option value="s.StatusID" disabled>{{ s.Description }}</option>
+                                                {% else %}
+                                                    <option value="s.StatusID">{{ s.Description }}</option>
+                                                {% endif %}
+                                            {% endfor %}                </select>
                                     </div>
                                 </div>
                             {% endif %}
                         {% endfor %}
                     </div>
-                  </div>
-              </div>
+                </div>
         </div>
         <div class="col">
-            <div class="card">
-                <div class="card">
+            <div class="card h-100 animated-card">
                     <div class="card-header">
                         <div class="row">
                             <div class="col">
                                 Shipping Details
                             </div>
                             <div class="col text-end">
-                                <button class="btn btn-sm btn-primary text-end">Change</button>
-                            </div>
+                          
+                                      <button class="btn btn-sm btn-primary text-end">Change</button>
+                          
+                                  </div>
                         </div>
                     </div>
                     <div class="card-body">
@@ -119,10 +170,12 @@
                                 <a href="https://www.google.com/maps?q={{ result.Address1 }}, {{ result.Address2 }}, {{ result.City }}, {{ result.StateName }}, {{ result.ZipCode }}" target="_blank" class="btn btn-primary">Open in Google Maps</a>
                             {% endif %}
                         {% endfor %}
-                    </div>                    
-                    </div>                    
-              </div>
+                    </div>
+                </div>
+        </div>
         </div>
     </div>
 </div>
 {% endblock %}
+
+<script sr

@@ -506,6 +506,7 @@ def proceed_checkout():
     expiration_year = data['yy']
     cardholder_name = data['cardName']
     address = data['inputAddress']
+    address2 = data['inputAddress2']
     city = data['inputCity']
     state_id = data['inputState']
     zip_code = data['inputZip']
@@ -531,11 +532,11 @@ def proceed_checkout():
         for product_id, quantity in product_quantity_pairs:
             total_with_tax = calculate_total_cost(total_price, tax)
             insert_query = "INSERT INTO PurchaseLogs (OrderNumber, Email, CardNumber, ExpMMYY, " \
-                            "CardholderName, Address1, City, StateID, ZipCode, " \
+                            "CardholderName, Address1, Address2, City, StateID, ZipCode, " \
                             "TotalPriceNoTax, TotalPriceTax, StatusID, ProductID, Quantity, PurchaseDate) " \
                             "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
             cursor.execute(insert_query, (new_order_number, email, card_number,
-                                          f"{expiration_month}/{expiration_year}", cardholder_name, address, city,
+                                          f"{expiration_month}/{expiration_year}", cardholder_name, address, address2, city,
                                           state_id, zip_code, total_price, total_with_tax, 1, product_id, quantity,
                                           datetime.now()))
 
@@ -805,11 +806,23 @@ def more_order_info(orderNumber):
     query = return_purchase_query(True)
     cursor.execute(query, (orderNumber,))
     results = cursor.fetchall()
+    cursor.execute("Select * from Status")
+    status = cursor.fetchall()
     conn.close()
 
-    return render_template('more_order_information.html', results=results, year=datetime.now().year, categories=get_nav_categories(), city=city,
+    return render_template('more_order_information.html', results=results, status=status, year=datetime.now().year, categories=get_nav_categories(), city=city,
                            postal_code=postal_code)
 
+@app.route('/update_status', methods=['POST'])
+def update_status():
+    data = request.get_json()
+    orderId = data['orderId']
+    newStatus = request.form.get('new_status')
+    print(data)
+    print(orderId)
+    print(newStatus)
+
+    return jsonify({'message': 'Status updated successfully'}), 200
 
 if __name__ == "__main__":
     app.run(debug=True)

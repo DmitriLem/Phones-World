@@ -662,14 +662,14 @@ def showOrderInfo():
     log = cursor.fetchall()
     conn.close()
 
-    return render_template('order_Info.html', year=datetime.now().year, categories=get_nav_categories(), city=city,
+    return render_template('order_Info.html', order_number=order_number, year=datetime.now().year, categories=get_nav_categories(), city=city,
                            postal_code=postal_code, log=log)
 
 @app.errorhandler(HTTPException)
 def handle_exception(e):
     return render_template('error.html', error=str(e)), e.code
 
-def return_purchase_query(isPost, orderNum):
+def return_purchase_query(isPost):
     query = """
     SELECT 
             p.OrderID,
@@ -701,12 +701,81 @@ def return_purchase_query(isPost, orderNum):
         LEFT JOIN Status AS status ON p.StatusID = status.StatusID
         LEFT JOIN Products AS pr ON p.productID = pr.product_id
     """
-    if orderNum:
+    if isPost:
         query += """
         WHERE p.OrderNumber = ?
         """
     return query
 
+def return_order_list(isPost):
+    query = """
+    WITH RankedPurchaseLogs AS (
+    SELECT 
+        p.OrderID,
+        p.OrderNumber,
+        p.Email,
+        p.CardNumber,
+        p.ExpMMYY,
+        p.CardholderName,
+        p.Address1,
+        p.Address2,
+        p.City,
+        states.abbreviation AS StateAbbreviation,
+        p.ZipCode,
+        p.TotalPriceNoTax,
+        p.TotalPriceTax,
+        status.StatusID AS OrderStatusID,
+        pr.Product_id AS ProductID,
+        p.Quantity,
+        p.PurchaseDate,
+        states.name AS StateName,
+        status.Description AS OrderStatus,
+        pr.name AS ProductName,
+        pr.category_id AS ProductCategoryID,
+        pr.price AS ProductPrice,
+        pr.description AS ProductDescription,
+        pr.image_url AS ProductImageURL,
+        ROW_NUMBER() OVER(PARTITION BY p.OrderNumber ORDER BY p.OrderID) AS RowNum
+    FROM PurchaseLogs AS p
+    LEFT JOIN states ON p.stateID = states.id
+    LEFT JOIN Status AS status ON p.StatusID = status.StatusID
+    LEFT JOIN Products AS pr ON p.productID = pr.product_id
+)
+SELECT 
+    OrderID,
+    OrderNumber,
+    Email,
+    CardNumber,
+    ExpMMYY,
+    CardholderName,
+    Address1,
+    Address2,
+    City,
+    StateAbbreviation,
+    ZipCode,
+    TotalPriceNoTax,
+    TotalPriceTax,
+    OrderStatusID,
+    ProductID,
+    Quantity,
+    PurchaseDate,
+    StateName,
+    OrderStatus,
+    ProductName,
+    ProductCategoryID,
+    ProductPrice,
+    ProductDescription,
+    ProductImageURL
+FROM RankedPurchaseLogs
+WHERE RowNum = 1
+    """
+    if isPost:
+        query += """
+        AND OrderNumber = ?
+        """
+    return query
+
+@cache.cached(timeout=500)
 @app.route('/manageOrders', methods=['GET', 'POST'])
 def manage_orders():
     city, postal_code = get_location_from_ip()
@@ -717,20 +786,28 @@ def manage_orders():
         data = request.form
         order_number = data['orderNumber']
         isPost = True
-        query = return_purchase_query(isPost, order_number)
+        query = return_order_list(isPost)
         cursor.execute(query, (order_number,))
     else:
-        query = return_purchase_query(isPost, 0)
+        query = return_order_list(isPost)
         cursor.execute(query)
     results = cursor.fetchall()
     conn.close()
     return render_template('manageOrders.html', results=results, isPost=isPost, year=datetime.now().year, categories=get_nav_categories(), city=city,
                            postal_code=postal_code)
 
-@app.route('/more_order_info', methods=['GET', 'POST'])
-def more_order_info():
+@cache.cached(timeout=500)
+@app.route('/more_order_info/<int:orderNumber>', methods=['GET'])
+def more_order_info(orderNumber):
     city, postal_code = get_location_from_ip()
-    return render_template('more_order_information.html', year=datetime.now().year, categories=get_nav_categories(), city=city,
+    conn = create_connection()
+    cursor = conn.cursor()
+    query = return_purchase_query(True)
+    cursor.execute(query, (orderNumber,))
+    results = cursor.fetchall()
+    conn.close()
+
+    return render_template('more_order_information.html', results=results, year=datetime.now().year, categories=get_nav_categories(), city=city,
                            postal_code=postal_code)
 
 

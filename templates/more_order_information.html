@@ -1,0 +1,128 @@
+{% extends 'base.html' %}
+
+{% block head %}
+{% endblock %}
+<style>
+    .card-number {
+        font-family: monospace;
+        white-space: pre;
+    }
+    .card-number::after {
+        content: ' ';
+    }
+    .group {
+        display: inline-block;
+        margin-right: 5px;
+    }
+</style>
+{% block body %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col">
+            <div class="card">
+                <div class="card">
+                    <div class="card-header">
+                      Products Information
+                    </div>
+                    <div class="card-body">
+                            {% for item in results %}
+                                <div class="row g-0">
+                                    <div class="col-md-4">
+                                        <a href="{{ url_for('view_product', product_id=item.ProductID) }}">
+                                            {% if item.ProductImageURL.startswith('http') %}
+                                                <img src="{{ item.ProductImageURL }}" class="img-fluid" alt="{{ item.ProductImageURL }}">
+                                            {% else %}
+                                                <img src="/static/userUploadPhotos/{{ item.ProductImageURL }}" alt="{{ item.ProductImageURL }}" class="img-fluid">
+                                            {% endif %}
+                                        </a>
+                                    </div>
+                                    <div class="col-md-8">
+                                        <div class="card-body">
+                                            <div class="row">
+                                                <div class="col">
+                                                    <h6><a href="{{ url_for('view_product', product_id=item.ProductID) }}">{{ item.ProductName }}</a></h6>
+                                                </div>
+                                                <div class="col text-end">
+                                                    <h5><a href="{{ url_for('view_product', product_id=item.ProductID) }}">${{ item.ProductPrice }}</a></h5>
+                                                </div>
+                                            </div>
+                                            <p><a href="{{ url_for('view_product', product_id=item.ProductID) }}">{{ item.ProductDescription | truncate(length=55, end='...') }}</a></p>
+                                            <p><a href="{{ url_for('view_product', product_id=item.ProductID) }}">Quantity: {{ item.Quantity }}</a></p>
+                                        </div>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                    </div>
+                  </div>
+              </div>
+        </div>
+        <div class="col">
+            <div class="card">
+                <div class="card">
+                    <div class="card-header">
+                        Order Status
+                    </div>
+                    <div class="card-body">
+                        {% for result in results %}
+                            {% if loop.first %}
+                                <p><strong>Order#</strong> {{ result.OrderNumber }}</p>
+                                <hr/>
+                                <p><strong>Email:</strong> {{ result.Email }}</p>
+                                <p class="card-number"><strong>Card Number:</strong>
+                                    <span class="group">{{ result.CardNumber[:4] }}</span>
+                                    <span class="group">{{ result.CardNumber[4:8] }}</span>
+                                    <span class="group">{{ result.CardNumber[8:12] }}</span>
+                                    <span class="group">{{ result.CardNumber[12:] }}</span>
+                                </p>
+                                <p><strong>Exp MM/YY:</strong> {{ result.ExpMMYY.split('/')[0] }}/{{ result.ExpMMYY.split('/')[1][-2:] }}</p>
+                                <p><strong>Cardholder Name:</strong> {{ result.CardholderName }}</p>
+                                <hr/>
+                                <p><strong>Total Price (Tax):</strong> ${{ result.TotalPriceTax }}</p>
+                                <p><strong>Total Price (No Tax):</strong> ${{ result.TotalPriceNoTax }}</p>
+                                <p><strong>Purchase Date:</strong> {{ result.PurchaseDate.strftime('%Y-%m-%d %I:%M %p') }}</p>
+                                <hr/>
+                                <div class="row">
+                                    <div class="col">
+                                        <p><strong>Status:</strong> {{ result.OrderStatus }}</p>
+                                    </div>
+                                    <div class="col text-end">
+                                        <button class="btn btn-sm btn-primary text-end">Change</button>
+                                    </div>
+                                </div>
+                            {% endif %}
+                        {% endfor %}
+                    </div>
+                  </div>
+              </div>
+        </div>
+        <div class="col">
+            <div class="card">
+                <div class="card">
+                    <div class="card-header">
+                        <div class="row">
+                            <div class="col">
+                                Shipping Details
+                            </div>
+                            <div class="col text-end">
+                                <button class="btn btn-sm btn-primary text-end">Change</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        {% for result in results %}
+                            {% if loop.first %}
+                                <p><strong>Address 1:</strong> {{ result.Address1 }}</p>
+                                <p><strong>Address 2:</strong> {{ result.Address2 }}</p>
+                                <p><strong>City:</strong> {{ result.City }}</p>
+                                <p><strong>State:</strong> {{ result.StateName }}</p>
+                                <p><strong>Zip Code:</strong> {{ result.ZipCode }}</p>
+                                <a href="https://www.google.com/maps?q={{ result.Address1 }}, {{ result.Address2 }}, {{ result.City }}, {{ result.StateName }}, {{ result.ZipCode }}" target="_blank" class="btn btn-primary">Open in Google Maps</a>
+                            {% endif %}
+                        {% endfor %}
+                    </div>                    
+                    </div>                    
+              </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

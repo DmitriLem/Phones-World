@@ -58,7 +58,7 @@
             <td scope="row">{{ order.OrderStatus }}</td>
             <td scope="row">{{ order.PurchaseDate.strftime('%Y-%m-%d %I:%M %p')  }}</td>
             <td scope="row">
-              <a class="btn btn-primary" href="{{ url_for('more_order_info', id=order.OrderID) }}">View More</a>
+              <a class="btn btn-primary" href="{{ url_for('more_order_info', orderNumber=order.OrderNumber) }}">View More</a>
             </td>
           </tr>
           {% endfor %}

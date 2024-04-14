@@ -118,28 +118,36 @@
                                 <p><strong>Total Price (No Tax):</strong> ${{ result.TotalPriceNoTax }}</p>
                                 <p><strong>Purchase Date:</strong> {{ result.PurchaseDate.strftime('%Y-%m-%d %I:%M %p') }}</p>
                                 <hr/>
-                                <div class="row">
-                                    <div class="col">
-                                        <p><strong>Status:</strong> {{ result.OrderStatus }}</p>
-                                    </div>
-                                    <div class="col text-end">
-                                        <button class="btn btn-sm btn-primary text-end">Change</button>
-                                        <button hidden class="btn btn-sm btn-success text-end">Save</button>
-                                        <button hidden class="btn btn-sm btn-danger text-end">Cancel</button>
-                                    </div>
-                                </div>
-                                <div class="row">
-                                    <div class="col">
-                                        <select hidden id="status" name="status" class="form-select">
-                                            {% for s in status %}
-                                                {% if s.Description == result.OrderStatus %}
-                                                    <option value="s.StatusID" disabled>{{ s.Description }}</option>
-                                                {% else %}
-                                                    <option value="s.StatusID">{{ s.Description }}</option>
+                                    <div class="row">
+                                        <div class="col">
+                                            <p><strong>Status:</strong> {{ result.OrderStatus }}</p>
+                                        </div>
+                                        <div class="col text-end">
+                                            {% for result in results %}
+                                                {% if loop.first %}
+                                                        {% if result.OrderStatusID != 4 or result.OrderStatusID != 5 %}
+                                                            <input type="hidden" id="orderNumber" value="{{ result.OrderNumber }}">
+                                                            <button class="btn btn-sm btn-primary text-end" id="changeButton">Change</button>
+                                                            <button type="submit" hidden class="btn btn-sm btn-success text-end" id="saveButton">Save</button>
+                                                            <button hidden class="btn btn-sm btn-danger text-end" id="cancelButton">Cancel</button>
+                                                        {% endif %}
                                                 {% endif %}
-                                            {% endfor %}                </select>
+                                            {% endfor %}
+                                        </div>
                                     </div>
-                                </div>
+                                    <div class="row">
+                                        <div class="col">
+                                            <select hidden id="status" name="status" class="form-select" data-status="{{ result.OrderStatus }}">
+                                                {% for s in status %}
+                                                    {% if s.Description == result.OrderStatus %}
+                                                        <option value="{{ s.StatusID }}" selected disabled>{{ s.Description }}</option>
+                                                    {% else %}
+                                                        <option value="{{ s.StatusID }}">{{ s.Description }}</option>
+                                                    {% endif %}
+                                                {% endfor %}
+                                            </select>                                        
+                                        </div>
+                                    </div>
                             {% endif %}
                         {% endfor %}
                     </div>
@@ -147,35 +155,40 @@
         </div>
         <div class="col">
             <div class="card h-100 animated-card">
-                    <div class="card-header">
-                        <div class="row">
-                            <div class="col">
-                                Shipping Details
+                <form action="/update_order_address" method="GET">
+                        <div class="card-header">
+                            <div class="row">
+                                <div class="col">
+                                    Shipping Details
+                                </div>
+                                <div class="col text-end">
+                                    {% for result in results %}
+                                        {% if loop.first %}
+                                            {% if result.OrderStatusID == 1 or result.OrderStatusID == 2 %}
+                                                <input type="hidden" id="orderNumber" name="orderNumber" value="{{ result.OrderNumber }}">
+                                                <button type="submit" class="btn btn-sm btn-primary text-end">Change</button>
+                                            {% endif %} 
+                                        {% endif %}
+                                    {% endfor %}
+                                </div>
                             </div>
-                            <div class="col text-end">
-                          
-                                      <button class="btn btn-sm btn-primary text-end">Change</button>
-                          
-                                  </div>
+                        </div>
+                        <div class="card-body">
+                            {% for result in results %}
+                                {% if loop.first %}
+                                    <p><strong>Address 1:</strong> {{ result.Address1 }}</p>
+                                    <p><strong>Address 2:</strong> {{ result.Address2 }}</p>
+                                    <p><strong>City:</strong> {{ result.City }}</p>
+                                    <p><strong>State:</strong> {{ result.StateName }}</p>
+                                    <p><strong>Zip Code:</strong> {{ result.ZipCode }}</p>
+                                    <a href="https://www.google.com/maps?q={{ result.Address1 }}, {{ result.Address2 }}, {{ result.City }}, {{ result.StateName }}, {{ result.ZipCode }}" target="_blank" class="btn btn-success">Open in Google Maps</a>
+                                {% endif %}
+                            {% endfor %}
                         </div>
                     </div>
-                    <div class="card-body">
-                        {% for result in results %}
-                            {% if loop.first %}
-                                <p><strong>Address 1:</strong> {{ result.Address1 }}</p>
-                                <p><strong>Address 2:</strong> {{ result.Address2 }}</p>
-                                <p><strong>City:</strong> {{ result.City }}</p>
-                                <p><strong>State:</strong> {{ result.StateName }}</p>
-                                <p><strong>Zip Code:</strong> {{ result.ZipCode }}</p>
-                                <a href="https://www.google.com/maps?q={{ result.Address1 }}, {{ result.Address2 }}, {{ result.City }}, {{ result.StateName }}, {{ result.ZipCode }}" target="_blank" class="btn btn-primary">Open in Google Maps</a>
-                            {% endif %}
-                        {% endfor %}
-                    </div>
-                </div>
+                </form>
         </div>
         </div>
     </div>
 </div>
 {% endblock %}
-
-<script sr

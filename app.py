@@ -12,10 +12,10 @@ import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from config import Config
+from queries import Queries
 from contextlib import closing
 from werkzeug.exceptions import HTTPException
 from emailbody import GetEmailBody
-from flask import render_template
 
 app = Flask(__name__)
 app.config.from_object(Config)
@@ -48,7 +48,8 @@ def get_location_from_ip():
 def get_filtered_categories():
     conn = create_connection()
     cursor = conn.cursor()
-    cursor.execute("SELECT * FROM Categories WHERE LEN(name) <= 16")
+    filtered_categories_query = Queries.get_filtered_categories_query()
+    cursor.execute(filtered_categories_query)
     filtered_categories = cursor.fetchall()
     conn.close()
     return filtered_categories
@@ -79,27 +80,7 @@ def get_cached_random_products():
 def fetch_random_products_from_db():
     conn = create_connection()
     cursor = conn.cursor()
-    query = """
-    SELECT TOP 9
-    p.product_id,
-    p.name,
-    c.name as category_name,
-    p.category_id,
-    p.price,
-    p.description,
-    i.quantity,
-    p.image_url
-    FROM 
-        Products as p
-    LEFT JOIN 
-        Categories as c ON p.category_id = c.category_id
-    LEFT JOIN 
-        Inventory as i ON p.product_id = i.product_id
-    WHERE
-        i.quantity IS NOT NULL AND i.quantity > 0
-    ORDER BY
-        NEWID()
-    """
+    query = Queries.fetch_random_products_query()
     cursor.execute(query)
     results = cursor.fetchall()
     conn.close()
@@ -109,25 +90,7 @@ def fetch_random_products_from_db():
 def search_products_by_name(search_query):
     conn = create_connection()
     cursor = conn.cursor()
-    query = """
-    SELECT 
-        p.product_id,
-        p.name,
-        c.name as category_name,
-        p.category_id,
-        p.price,
-        p.description,
-        i.quantity,
-        p.image_url
-    FROM 
-        Products as p
-    LEFT JOIN 
-        Categories as c ON p.category_id = c.category_id
-    LEFT JOIN 
-        Inventory as i ON p.product_id = i.product_id
-    WHERE
-        p.name LIKE ? OR p.description LIKE ?
-    """
+    query = Queries.search_products_query(search_query)
     cursor.execute(query, ('%' + search_query + '%', '%' + search_query + '%'))
     results = cursor.fetchall()
     conn.close()
@@ -148,25 +111,7 @@ def search_by_name():
 def get_product_by_id(product_id):
     conn = create_connection()
     cursor = conn.cursor()
-    query = """
-    SELECT 
-        p.product_id,
-        p.name,
-        c.name as category_name,
-        p.category_id,
-        p.price,
-        p.description,
-        i.quantity,
-        p.image_url
-    FROM 
-        Products as p
-    LEFT JOIN 
-        Categories as c ON p.category_id = c.category_id
-    LEFT JOIN 
-        Inventory as i ON p.product_id = i.product_id
-    WHERE
-        p.product_id = ?
-    """
+    query = Queries.get_product_by_id_query(product_id)
     cursor.execute(query, (product_id,))
     product = cursor.fetchone()
     conn.close()
@@ -182,25 +127,7 @@ def view_product(product_id):
 def search_products_by_category(category_id):
     conn = create_connection()
     cursor = conn.cursor()
-    query = """
-    SELECT 
-        p.product_id,
-        p.name,
-        c.name as category_name,
-        p.category_id,
-        p.price,
-        p.description,
-        i.quantity,
-        p.image_url
-    FROM 
-        Products as p
-    LEFT JOIN 
-        Categories as c ON p.category_id = c.category_id
-    LEFT JOIN 
-        Inventory as i ON p.product_id = i.product_id
-    WHERE
-        p.category_id = ?
-    """
+    query = Queries.search_products_by_category_query(category_id)
     cursor.execute(query, (category_id,))
     results = cursor.fetchall()
     conn.close()
@@ -216,23 +143,7 @@ def search_by_category(category_id):
 def get_all_products():
     conn = create_connection()
     cursor = conn.cursor()
-    query = """
-    SELECT 
-        p.product_id,
-        p.name,
-        c.name as category_name,
-        p.category_id,
-        p.price,
-        p.description,
-        i.quantity,
-        p.image_url
-    FROM 
-        Products as p
-    LEFT JOIN 
-        Categories as c ON p.category_id = c.category_id
-    LEFT JOIN 
-        Inventory as i ON p.product_id = i.product_id
-    """
+    query = Queries.get_all_products_query()
     cursor.execute(query)
     results = cursor.fetchall()
     conn.close()
@@ -249,7 +160,8 @@ def add_product():
     city, postal_code = get_location_from_ip()
     conn = create_connection()
     cursor = conn.cursor()
-    cursor.execute("SELECT c.category_id, c.name FROM Categories as c")
+    categories_query = Queries.get_all_categories_query()
+    cursor.execute(categories_query)
     results = cursor.fetchall()
     conn.close()
     return render_template('add_product.html', year=datetime.now().year, results=results, categories=get_nav_categories(), city=city, postal_code=postal_code)
@@ -270,12 +182,10 @@ def create():
                 file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
                 with create_connection() as conn:
                     cursor = conn.cursor()
-                    cursor.execute("INSERT INTO Products (name, category_id, price, description, image_url) VALUES (?, ?, ?, ?, ?)",
-                                   (name, category_id, price, description, filename))
-                    cursor.execute("SELECT product_id FROM Products WHERE name = ? AND description LIKE ? AND price = ?",
-                                   (name, description, price))
+                    cursor.execute(Queries.insert_product_query(name, category_id, price, description, filename), (name, category_id, price, description, filename))
+                    cursor.execute(Queries.get_product_id_query(name, description, price), (name, description, price))
                     product_id = cursor.fetchone()[0]
-                    cursor.execute("INSERT INTO Inventory (product_id, quantity) VALUES (?, ?)", (product_id, quantity))
+                    cursor.execute(Queries.insert_inventory_query(product_id, quantity), (product_id, quantity))
                     conn.commit()
                     flash('Product added successfully!', 'success')
             except Exception as e:
@@ -293,10 +203,10 @@ def delete_product(product_id):
         try:
             with create_connection() as conn:
                 cursor = conn.cursor()
-                cursor.execute("SELECT image_url FROM Products WHERE product_id=?", (product_id,))
+                cursor.execute(Queries.get_image_url_query(product_id), (product_id,))
                 image_url = cursor.fetchone()[0]
-                cursor.execute("DELETE FROM Inventory WHERE product_id=?", (product_id,))
-                cursor.execute("DELETE FROM Products WHERE product_id=?", (product_id,))
+                cursor.execute(Queries.delete_inventory_query(product_id), (product_id,))
+                cursor.execute(Queries.delete_product_query(product_id), (product_id,))
                 image_path = os.path.join(app.config['UPLOAD_FOLDER'], image_url)
                 if os.path.exists(image_path):
                     os.remove(image_path)
@@ -319,8 +229,7 @@ def edit_product(product_id):
             category_id = int(request.form.get('category_id'))
             price = decimal.Decimal(request.form.get('price'))
             description = request.form.get('description')
-            cursor.execute("UPDATE Products SET name=?, category_id=?, price=?, description=? WHERE product_id=?",
-                           (name, category_id, price, description, product_id))
+            cursor.execute(Queries.update_product_query(name, category_id, price, description, product_id), (name, category_id, price, description, product_id))
             conn.commit()
             flash('Product updated successfully!', 'success')
         except Exception as e:
@@ -329,8 +238,8 @@ def edit_product(product_id):
         finally:
             conn.close()
         return redirect('/crud')
-    
-    cursor.execute("SELECT * FROM Products WHERE product_id=?", (product_id,))
+
+    cursor.execute(Queries.get_product_by_id_query(product_id), (product_id,))
     product = cursor.fetchone()
     conn.close()
 
@@ -347,7 +256,7 @@ def cart():
     cursor = conn.cursor()
 
     for product_id, quantity in cart.items():
-        cursor.execute("SELECT * FROM Products WHERE product_id = ?", (product_id,))
+        cursor.execute(Queries.get_product_by_id_query(product_id), (product_id,))
         product = cursor.fetchone()
         if product:
             total_items += quantity
@@ -398,10 +307,11 @@ def buy():
     total_price = 0
     conn = create_connection()
     cursor = conn.cursor()
-    cursor.execute("SELECT * FROM States")
+    states_query = Queries.get_all_states_query()
+    cursor.execute(states_query)
     states = cursor.fetchall()
     for product_id, quantity in cart.items():
-        cursor.execute("SELECT * FROM Products WHERE product_id = ?", (product_id,))
+        cursor.execute(Queries.get_product_by_id_query(product_id), (product_id,))
         product = cursor.fetchone()
         if product:
             total_items += quantity
@@ -433,36 +343,7 @@ def sendEmailReceipt(order_number, recipient_email):
     smtp_server = smtp_config['smtp_server']
     smtp_port = smtp_config['smtp_port']
 
-    query = """SELECT 
-                p.OrderID,
-                p.OrderNumber,
-                p.Email,
-                p.CardNumber,
-                p.ExpMMYY,
-                p.CardholderName,
-                p.Address1,
-                p.Address2,
-                p.City,
-                states.abbreviation AS StateAbbreviation,
-                p.ZipCode,
-                p.TotalPriceNoTax,
-                p.TotalPriceTax,
-                status.StatusID AS OrderStatusID,
-                pr.Product_id as ProductID,
-                p.Quantity,
-                p.PurchaseDate,
-                states.name AS StateName,
-                status.Description AS OrderStatus,
-                pr.name AS ProductName,
-                pr.category_id AS ProductCategoryID,
-                pr.price AS ProductPrice,
-                pr.description AS ProductDescription,
-                pr.image_url AS ProductImageURL
-            FROM PurchaseLogs AS p
-            LEFT JOIN states ON p.stateID = states.id
-            LEFT JOIN Status AS status ON p.StatusID = status.StatusID
-            LEFT JOIN Products AS pr ON p.productID = pr.product_id
-            WHERE p.OrderNumber = ?"""
+    query = Queries.get_purchase_log_query(order_number)
 
     try:
         with closing(create_connection()) as conn, conn.cursor() as cursor:
@@ -520,25 +401,20 @@ def proceed_checkout():
 
     try:
         for product_id, quantity in product_quantity_pairs:
-            update_query = "UPDATE Inventory SET Quantity = Quantity - ? WHERE Product_ID = ?"
-            cursor.execute(update_query, (quantity, product_id))
+            cursor.execute(Queries.update_inventory_query(product_id, quantity), (quantity, product_id))
 
-        cursor.execute("SELECT OrderNumber FROM PurchaseLogs")
+        cursor.execute(Queries.get_existing_order_numbers_query())
         existing_order_numbers = [row[0] for row in cursor.fetchall()]
         new_order_number = generate_order_number(existing_order_numbers)
-        cursor.execute("SELECT tax_percentage FROM States WHERE id = ?", (state_id,))
+        cursor.execute(Queries.get_tax_percentage_query(state_id), (state_id,))
         tax = cursor.fetchone()[0]
 
         for product_id, quantity in product_quantity_pairs:
             total_with_tax = calculate_total_cost(total_price, tax)
-            insert_query = "INSERT INTO PurchaseLogs (OrderNumber, Email, CardNumber, ExpMMYY, " \
-                            "CardholderName, Address1, Address2, City, StateID, ZipCode, " \
-                            "TotalPriceNoTax, TotalPriceTax, StatusID, ProductID, Quantity, PurchaseDate) " \
-                            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
-            cursor.execute(insert_query, (new_order_number, email, card_number,
-                                          f"{expiration_month}/{expiration_year}", cardholder_name, address, address2, city,
-                                          state_id, zip_code, total_price, total_with_tax, 1, product_id, quantity,
-                                          datetime.now()))
+            cursor.execute(Queries.insert_purchase_log_query(new_order_number, email, card_number, f"{expiration_month}/{expiration_year}",
+                                                      cardholder_name, address, address2, city, state_id, zip_code,
+                                                      total_price, total_with_tax, 1, product_id, quantity, datetime.now()))
+
 
         conn.commit()
         is_email_sent = sendEmailReceipt(new_order_number, email)
@@ -562,38 +438,7 @@ def receipt():
 
     try:
         with create_connection() as conn, conn.cursor() as cursor:
-            insert_query = """
-                SELECT 
-                    p.OrderID,
-                    p.OrderNumber,
-                    p.Email,
-                    p.CardNumber,
-                    p.ExpMMYY,
-                    p.CardholderName,
-                    p.Address1,
-                    p.Address2,
-                    p.City,
-                    states.abbreviation AS StateAbbreviation,
-                    p.ZipCode,
-                    p.TotalPriceNoTax,
-                    p.TotalPriceTax,
-                    status.StatusID AS OrderStatusID,
-                    pr.Product_id as ProductID,
-                    p.Quantity,
-                    p.PurchaseDate,
-                    states.name AS StateName,
-                    status.Description AS OrderStatus,
-                    pr.name AS ProductName,
-                    pr.category_id AS ProductCategoryID,
-                    pr.price AS ProductPrice,
-                    pr.description AS ProductDescription,
-                    pr.image_url AS ProductImageURL
-                FROM PurchaseLogs AS p
-                LEFT JOIN states ON p.stateID = states.id
-                LEFT JOIN Status AS status ON p.StatusID = status.StatusID
-                LEFT JOIN Products AS pr ON p.productID = pr.product_id
-                WHERE p.OrderNumber = ?
-            """
+            insert_query = Queries.get_purchase_log_by_order_number_query(order_number)
             cursor.execute(insert_query, (order_number,))
             log = cursor.fetchall()
     except Exception as e:
@@ -627,38 +472,7 @@ def showOrderInfo():
     city, postal_code = get_location_from_ip()
     conn = create_connection()
     cursor = conn.cursor()
-    query = """
-        SELECT 
-            p.OrderID,
-            p.OrderNumber,
-            p.Email,
-            p.CardNumber,
-            p.ExpMMYY,
-            p.CardholderName,
-            p.Address1,
-            p.Address2,
-            p.City,
-            states.abbreviation AS StateAbbreviation,
-            p.ZipCode,
-            p.TotalPriceNoTax,
-            p.TotalPriceTax,
-            status.StatusID AS OrderStatusID,
-            pr.Product_id as ProductID,
-            p.Quantity,
-            p.PurchaseDate,
-            states.name AS StateName,
-            status.Description AS OrderStatus,
-            pr.name AS ProductName,
-            pr.category_id AS ProductCategoryID,
-            pr.price AS ProductPrice,
-            pr.description AS ProductDescription,
-            pr.image_url AS ProductImageURL
-        FROM PurchaseLogs AS p
-        LEFT JOIN states ON p.stateID = states.id
-        LEFT JOIN Status AS status ON p.StatusID = status.StatusID
-        LEFT JOIN Products AS pr ON p.productID = pr.product_id
-        WHERE p.OrderNumber = ?
-    """
+    query = Queries.get_purchase_log_by_order_number_query(order_number)
     cursor.execute(query, (order_number,))
     log = cursor.fetchall()
     conn.close()
@@ -669,112 +483,6 @@ def showOrderInfo():
 @app.errorhandler(HTTPException)
 def handle_exception(e):
     return render_template('error.html', error=str(e)), e.code
-
-def return_purchase_query(isPost):
-    query = """
-    SELECT 
-            p.OrderID,
-            p.OrderNumber,
-            p.Email,
-            p.CardNumber,
-            p.ExpMMYY,
-            p.CardholderName,
-            p.Address1,
-            p.Address2,
-            p.City,
-            states.abbreviation AS StateAbbreviation,
-            p.ZipCode,
-            p.TotalPriceNoTax,
-            p.TotalPriceTax,
-            status.StatusID AS OrderStatusID,
-            pr.Product_id as ProductID,
-            p.Quantity,
-            p.PurchaseDate,
-            states.name AS StateName,
-            status.Description AS OrderStatus,
-            pr.name AS ProductName,
-            pr.category_id AS ProductCategoryID,
-            pr.price AS ProductPrice,
-            pr.description AS ProductDescription,
-            pr.image_url AS ProductImageURL
-        FROM PurchaseLogs AS p
-        LEFT JOIN states ON p.stateID = states.id
-        LEFT JOIN Status AS status ON p.StatusID = status.StatusID
-        LEFT JOIN Products AS pr ON p.productID = pr.product_id
-    """
-    if isPost:
-        query += """
-        WHERE p.OrderNumber = ?
-        """
-    return query
-
-def return_order_list(isPost):
-    query = """
-    WITH RankedPurchaseLogs AS (
-    SELECT 
-        p.OrderID,
-        p.OrderNumber,
-        p.Email,
-        p.CardNumber,
-        p.ExpMMYY,
-        p.CardholderName,
-        p.Address1,
-        p.Address2,
-        p.City,
-        states.abbreviation AS StateAbbreviation,
-        p.ZipCode,
-        p.TotalPriceNoTax,
-        p.TotalPriceTax,
-        status.StatusID AS OrderStatusID,
-        pr.Product_id AS ProductID,
-        p.Quantity,
-        p.PurchaseDate,
-        states.name AS StateName,
-        status.Description AS OrderStatus,
-        pr.name AS ProductName,
-        pr.category_id AS ProductCategoryID,
-        pr.price AS ProductPrice,
-        pr.description AS ProductDescription,
-        pr.image_url AS ProductImageURL,
-        ROW_NUMBER() OVER(PARTITION BY p.OrderNumber ORDER BY p.OrderID) AS RowNum
-    FROM PurchaseLogs AS p
-    LEFT JOIN states ON p.stateID = states.id
-    LEFT JOIN Status AS status ON p.StatusID = status.StatusID
-    LEFT JOIN Products AS pr ON p.productID = pr.product_id
-)
-SELECT 
-    OrderID,
-    OrderNumber,
-    Email,
-    CardNumber,
-    ExpMMYY,
-    CardholderName,
-    Address1,
-    Address2,
-    City,
-    StateAbbreviation,
-    ZipCode,
-    TotalPriceNoTax,
-    TotalPriceTax,
-    OrderStatusID,
-    ProductID,
-    Quantity,
-    PurchaseDate,
-    StateName,
-    OrderStatus,
-    ProductName,
-    ProductCategoryID,
-    ProductPrice,
-    ProductDescription,
-    ProductImageURL
-FROM RankedPurchaseLogs
-WHERE RowNum = 1
-    """
-    if isPost:
-        query += """
-        AND OrderNumber = ?
-        """
-    return query
 
 @cache.cached(timeout=500)
 @app.route('/manageOrders', methods=['GET', 'POST'])
@@ -787,10 +495,10 @@ def manage_orders():
         data = request.form
         order_number = data['orderNumber']
         isPost = True
-        query = return_order_list(isPost)
+        query = Queries.return_order_list(isPost)
         cursor.execute(query, (order_number,))
     else:
-        query = return_order_list(isPost)
+        query = Queries.return_order_list(isPost)
         cursor.execute(query)
     results = cursor.fetchall()
     conn.close()
@@ -803,10 +511,10 @@ def more_order_info(orderNumber):
     city, postal_code = get_location_from_ip()
     conn = create_connection()
     cursor = conn.cursor()
-    query = return_purchase_query(True)
+    query = Queries.return_purchase_query(True)
     cursor.execute(query, (orderNumber,))
     results = cursor.fetchall()
-    cursor.execute("Select * from Status")
+    cursor.execute(Queries.get_all_states_query())
     status = cursor.fetchall()
     conn.close()
 
@@ -815,14 +523,32 @@ def more_order_info(orderNumber):
 
 @app.route('/update_status', methods=['POST'])
 def update_status():
-    data = request.get_json()
-    orderId = data['orderId']
-    newStatus = request.form.get('new_status')
-    print(data)
-    print(orderId)
-    print(newStatus)
+    try:
+        data = request.get_json()
+        status_id = data.get('StatusID')
+        order_number = data.get('OrderNumber')
+        conn = create_connection()
+        cursor = conn.cursor()
+        update_query = Queries.update_purchase_logs_status_query(status_id, order_number)
+        cursor.execute(update_query, (status_id, order_number))
+        conn.commit()
+        conn.close()
+        print('Commit')
+        return jsonify({'message': 'Status updated successfully'}), 200
+    except Exception as e:
+        if 'conn' in locals() and conn:
+            cursor.execute("ROLLBACK;")
+            conn.close()
+            print('Exception')
+        return jsonify({'error': str(e)}), 500
 
-    return jsonify({'message': 'Status updated successfully'}), 200
+@app.route('/update_order_address', methods=['GET'])
+def update_order_address():
+    city, postal_code = get_location_from_ip()
+    order_number = request.args.get('orderNumber')
+    return render_template('more_order_information.html', year=datetime.now().year, categories=get_nav_categories(), city=city,
+                           postal_code=postal_code)
+
 
 if __name__ == "__main__":
     app.run(debug=True)

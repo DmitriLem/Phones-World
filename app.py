@@ -571,7 +571,7 @@ def update_status():
 def update_order_address():
     city, postal_code = get_location_from_ip()
     order_number = request.args.get('orderNumber')
-    return render_template('more_order_information.html', year=datetime.now().year, categories=get_nav_categories(), city=city,
+    return render_template('change_order_address.html', year=datetime.now().year, categories=get_nav_categories(), city=city,
                            postal_code=postal_code)
 
 

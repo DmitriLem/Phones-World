@@ -107,7 +107,7 @@ def get_all_categories_query():
     return "SELECT c.category_id, c.name FROM Categories as c"
 
 def get_filtered_categories_query():
-    return "SELECT * FROM Categories WHERE LENGTH(name) <= 16"
+    return "SELECT * FROM Categories WHERE LEN(name) <= 16"
 
 def insert_product_query(name, category_id, price, description, image_url):
     return "INSERT INTO Products (name, category_id, price, description, image_url) VALUES (?, ?, ?, ?, ?)"

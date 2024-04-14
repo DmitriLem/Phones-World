@@ -1,0 +1,70 @@
+{% extends 'base.html' %}
+
+{% block head %}
+<script>
+  function allowOnlyNumbers(event) {
+  const key = event.keyCode || event.which;
+  if (!(key >= 48 && key <= 57) && key !== 8 && key !== 9 && key !== 13 && key !== 37 && key !== 39 && key !== 46) {
+      event.preventDefault();
+  }
+}
+</script>
+{% endblock %}
+
+{% block body %}
+<div class="container mt-5">
+    <div class="row mb-2 text-end">
+      <div class="row mb-2 text-start">
+        <div class="col-sm-3 ms-3">
+            <form id="findOrderNum" action="/manageOrders" method="POST">
+                <div class="input-group mb-3">
+                    <input type="text" class="form-control" placeholder="Order Number" name="orderNumber" id="orderNumber" onkeypress="allowOnlyNumbers(event)" required>
+                    <div class="input-group-append">
+                        <button class="btn btn-outline-success" type="submit">Search</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+        {% if isPost %}
+          <div class="col-sm-1 mt-2">
+              <a href="{{ url_for('manage_orders') }}"><i class="fas fa-sync-alt"></i> Reset</a>
+          </div>
+        {% endif %}  
+        <div class="col text-end">
+            <a href="{{ url_for('index') }}" class="btn btn-outline-primary">Return to main page</a>
+        </div>
+    </div>
+  </div>
+    
+    <table class="table table-success">
+        <thead>
+          <tr>
+            <th scope="col">ID</th>
+            <th scope="col">Order#</th>
+            <th scope="col">Email</th>
+            <th scope="col">Total</th>
+            <th scope="col">Status</th>
+            <th scope="col">Purchase Date</th>
+            <th scope="col"></th>
+          </tr>
+        </thead>
+        <tbody>
+            {% for order in results %}
+          <tr>
+            <td scope="row">{{ order.OrderID }}</td>
+            <td scope="row">{{ order.OrderNumber }}</td>
+            <td scope="row">{{ order.Email }}</td>
+            <td scope="row">${{ order.TotalPriceTax }}</td>
+            <td scope="row">{{ order.OrderStatus }}</td>
+            <td scope="row">{{ order.PurchaseDate.strftime('%Y-%m-%d %I:%M %p')  }}</td>
+            <td scope="row">
+              <a class="btn btn-primary" href="{{ url_for('more_order_info', orderNumber=order.OrderNumber) }}">View More</a>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    
+</div>
+
+{% endblock %}

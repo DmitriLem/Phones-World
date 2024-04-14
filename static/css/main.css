@@ -69,11 +69,11 @@ body {
 
 span.no-select {
     -webkit-touch-callout: none; /* iOS Safari */
-      -webkit-user-select: none; /* Safari */
-       -khtml-user-select: none; /* Konqueror HTML */
-         -moz-user-select: none; /* Firefox */
-          -ms-user-select: none; /* Internet Explorer/Edge */
-              user-select: none; /* Non-prefixed version, currently supported by Chrome, Edge, Opera and Firefox */
+    -webkit-user-select: none; /* Safari */
+    -khtml-user-select: none; /* Konqueror HTML */
+    -moz-user-select: none; /* Firefox */
+    -ms-user-select: none; /* Internet Explorer/Edge */
+    user-select: none; /* Non-prefixed version, currently supported by Chrome, Edge, Opera and Firefox */
 }
 
 /* cart.css */
@@ -106,4 +106,17 @@ span.no-select {
     transform: translate(-50%, -50%);
     color: white;
     font-size: 24px;
+}
+
+/* Адаптивность для разных размеров экрана */
+@media (min-width: 576px) {
+    .navbar-nav {
+        flex-direction: row; /* Вернем ссылки в ряд на средних и больших экранах */
+    }
+}
+
+@media (min-width: 992px) {
+    .navbar-brand {
+        font-size: 2rem; /* Увеличим размер логотипа на больших экранах */
+    }
 }

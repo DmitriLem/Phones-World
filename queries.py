@@ -133,9 +133,6 @@ def update_product_query(name, category_id, price, description, product_id):
 def get_product_by_id_query(product_id):
     return "SELECT * FROM Products WHERE product_id=?"
 
-def get_product_by_id_query(product_id):
-    return "SELECT * FROM Products WHERE product_id = ?"
-
 def get_all_states_query():
     return "SELECT * FROM States"
 
@@ -357,5 +354,26 @@ def return_purchase_query(isPost):
         """
     return query
 
+def return_status_query():
+    return "Select * from Status"
+
+
 def update_purchase_logs_status_query(status_id, order_number):
     return "UPDATE PurchaseLogs SET StatusID = ? WHERE OrderNumber = ?;"
+
+def return_order_address_query():
+    query = """
+    SELECT 
+            p.OrderID,
+            p.OrderNumber,
+            p.Address1,
+            p.Address2,
+            p.City,
+            p.ZipCode,
+            s.id as StatesID,
+            s.abbreviation AS StateAbbreviation
+        FROM PurchaseLogs AS p
+        LEFT JOIN states as s ON p.stateID = s.id
+        WHERE p.OrderNumber = ?
+    """
+    return query

@@ -36,7 +36,9 @@ from queries import (
     get_purchase_log_by_order_number_query,
     return_order_list,
     return_purchase_query,
-    update_purchase_logs_status_query
+    update_purchase_logs_status_query,
+    return_status_query,
+    return_order_address_query
 )
 from contextlib import closing
 from werkzeug.exceptions import HTTPException
@@ -536,11 +538,11 @@ def more_order_info(orderNumber):
     city, postal_code = get_location_from_ip()
     conn = create_connection()
     cursor = conn.cursor()
+    cursor.execute(return_status_query())
+    status = cursor.fetchall()
     query = return_purchase_query(True)
     cursor.execute(query, (orderNumber,))
     results = cursor.fetchall()
-    cursor.execute(get_all_states_query())
-    status = cursor.fetchall()
     conn.close()
 
     return render_template('more_order_information.html', results=results, status=status, year=datetime.now().year, categories=get_nav_categories(), city=city,
@@ -569,9 +571,18 @@ def update_status():
 
 @app.route('/update_order_address', methods=['GET'])
 def update_order_address():
-    city, postal_code = get_location_from_ip()
     order_number = request.args.get('orderNumber')
-    return render_template('change_order_address.html', year=datetime.now().year, categories=get_nav_categories(), city=city,
+    city, postal_code = get_location_from_ip()
+    conn = create_connection()
+    cursor = conn.cursor()
+    query = return_order_address_query()
+    cursor.execute(query, (order_number))
+    data = cursor.fetchall()
+    cursor.execute(get_all_states_query())
+    states = cursor.fetchall()
+    conn.close()
+
+    return render_template('change_order_address.html', data=data, states=states, year=datetime.now().year, categories=get_nav_categories(), city=city,
                            postal_code=postal_code)
 
 

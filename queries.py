@@ -357,7 +357,6 @@ def return_purchase_query(isPost):
 def return_status_query():
     return "Select * from Status"
 
-
 def update_purchase_logs_status_query(status_id, order_number):
     return "UPDATE PurchaseLogs SET StatusID = ? WHERE OrderNumber = ?;"
 
@@ -376,4 +375,12 @@ def return_order_address_query():
         LEFT JOIN states as s ON p.stateID = s.id
         WHERE p.OrderNumber = ?
     """
+    return query
+
+def update_address_by_order_number(state_id):
+    if state_id == 'None' or state_id is None or state_id == '':
+        query = f"UPDATE PurchaseLogs SET Address1 = ?, Address2 = ?, City = ?, ZipCode = ? WHERE OrderNumber = ?"
+    else:
+        query = f"UPDATE PurchaseLogs SET Address1 = ?, Address2 = ?, City = ?, StateID = ?, ZipCode = ? WHERE OrderNumber = ?"
+    
     return query

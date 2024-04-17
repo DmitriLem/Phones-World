@@ -11,10 +11,8 @@ function isAddressValid() {
 
 function Valid(){
     var address1 = document.getElementById("Address1").value.trim();
-    var address2 = document.getElementById("Address2").value.trim();
     var city = document.getElementById("City").value.trim();
     var zipCode = document.getElementById("Zip").value.trim();
-    var StateID = document.getElementById("ddlState").value;
     var txtError = document.getElementById("spnError");
 
     if (address1.length < 2) {

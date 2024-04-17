@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, session, flash, jsonify, make_response, render_template
+from flask import Flask, render_template, request, redirect, session, flash, jsonify, make_response, render_template, url_for
 import pyodbc
 import random
 import requests
@@ -38,7 +38,8 @@ from queries import (
     return_purchase_query,
     update_purchase_logs_status_query,
     return_status_query,
-    return_order_address_query
+    return_order_address_query,
+    update_address_by_order_number
 )
 from contextlib import closing
 from werkzeug.exceptions import HTTPException
@@ -582,9 +583,70 @@ def update_order_address():
     states = cursor.fetchall()
     conn.close()
 
-    return render_template('change_order_address.html', data=data, states=states, year=datetime.now().year, categories=get_nav_categories(), city=city,
+    return render_template('change_order_address.html', order_number=order_number, data=data, states=states, year=datetime.now().year, categories=get_nav_categories(), city=city,
                            postal_code=postal_code)
 
+@app.route('/update_address', methods=['POST'])
+def update_address():
+    order_number = request.form.get('orderNumber')
+    address1 = request.form.get('Address1')
+    address2 = request.form.get('Address2')
+    city = request.form.get('City')
+    state_id = request.form.get('ddlState')
+    zip_code = request.form.get('Zip')
+
+    if ValidAddressData(order_number, address1, address2, city, state_id, zip_code):
+        try:
+            conn = create_connection()
+            cursor = conn.cursor()
+            query = update_address_by_order_number(state_id)
+            if state_id == 'None' or state_id is None or state_id == '':
+                cursor.execute(query, (address1, address2, city, zip_code, order_number))
+            else:
+                cursor.execute(query, (address1, address2, city, state_id, zip_code, order_number))
+            conn.commit()
+            
+        except Exception as e:
+            conn.rollback()
+            print('Error:', e)
+        finally:
+            conn.close()
+            return redirect(url_for('more_order_info', orderNumber=order_number))
+
+    return redirect(url_for('manage_orders'))
+
+def ValidAddressData(order_number, address1, address2, city, state_id, zip_code):
+    print(f"Address 1: {address1}")
+    print(f"Address 2: {address2}")
+    print(f"City: {city}")
+    print(f"State ID: {state_id}")
+    print(f"Zip Code: {zip_code}")
+    print(f"OrderNumber: {order_number}")
+    if not order_number:
+        print("Error: Order_Number should not be empty.")
+        return False
+    if not address1:
+        print("Error: Address1 should not be empty.")
+        return False
+    if not city:
+        print("Error: City should not be empty.")
+        return False
+    if not zip_code:
+        print("Error: ZipCode should not be empty.")
+        return False
+    if len(address1) < 2:
+        print("Error: Address1 should contain at least two characters.")
+        return False
+    if len(city) < 4:
+        print("Error: City should contain at least four characters.")
+        return False
+    if len(zip_code) != 5:
+        print("Error: ZipCode should contain exactly five digits.")
+        return False
+    if not zip_code.isdigit():
+        print("Error: ZipCode should be a digits.")
+        return False
+    return True
 
 if __name__ == "__main__":
     app.run(debug=True)

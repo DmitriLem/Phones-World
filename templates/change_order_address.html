@@ -61,41 +61,48 @@
 {% block body %}
 <div class="container">
     <h1>Update Order Details</h1>
-    <div class="compact-card">
-        <!-- Отображение текущих данных заказа -->
-        <!-- Замените данные согласно вашим потребностям -->
-        <h6>Current Address:</h6>
-        <p>Address 1: {{ current_address1 }}</p>
-        <p>Address 2: {{ current_address2 }}</p>
-        <p>City: {{ current_city }}</p>
-        <p>State: {{ current_state }}</p>
-        <p>Zip Code: {{ current_zip }}</p>
-    </div>
-    <!-- Форма для изменения данных заказа -->
-    <form class="update-form">
-        <div class="form-group">
-            <label for="newAddress1" class="form-label">New Address 1</label>
-            <input type="text" id="newAddress1" class="form-control" required>
-        </div>
-        <div class="form-group">
-            <label for="newAddress2" class="form-label">New Address 2</label>
-            <input type="text" id="newAddress2" class="form-control">
-        </div>
-        <div class="form-group">
-            <label for="newCity" class="form-label">New City</label>
-            <input type="text" id="newCity" class="form-control" required>
-        </div>
-        <div class="form-group">
-            <label for="newState" class="form-label">New State</label>
-            <input type="text" id="newState" class="form-control" required>
-        </div>
-        <div class="form-group">
-            <label for="newZip" class="form-label">New Zip Code</label>
-            <input type="text" id="newZip" class="form-control" required>
-        </div>
-        <!-- Кнопки Update и Cancel -->
-        <button type="button" class="btn btn-update">Update</button>
-        <button type="button" class="btn btn-cancel">Cancel</button>
+    <form class="update-form" action="/update_address" method="POST">
+        {% for d in data %}
+            {% if loop.first %}
+                <input hidden type="text" id="orderNumber" name="orderNumber" value="{{ order_number }}" class="form-control" required>
+                <div class="form-group">
+                    <label for="Address1" class="form-label">Address 1</label>
+                    <input type="text" id="Address1" name="Address1" value="{{d.Address1}}" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label for="Address2" class="form-label">Address 2</label>
+                    {% if d.Address2 is none or d.Address2 == 'None' %}
+                        <input type="text" id="Address2" name="Address2" class="form-control">
+                    {% else %}
+                        <input type="text" id="Address2" name="Address2" value="{{ d.Address2 }}" class="form-control">
+                    {% endif %}
+                </div>
+                <div class="form-group">
+                    <label for="City" class="form-label">City</label>
+                    <input type="text" id="City" name="City" value="{{d.City}}" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label for="State" class="form-label">State</label>
+                    <select class="form-select" id="ddlState" name="ddlState" required>
+                        {% for s in states %}
+                            {% if d.StatesID == s.id %}
+                                <option value="{{s.id}}" selected disabled>{{s.name}}</option>
+                            {% else %}
+                                <option value="{{s.id}}">{{s.name}}</option>
+                            {% endif %}
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="Zip" class="form-label">Zip Code</label>
+                    <input type="text" id="Zip" name="Zip" value="{{d.ZipCode}}" class="form-control" onkeypress="return AllowOnlyNumbers(event)" maxlength="5" minlength="5" required>
+                </div>
+                <button type="submit" class="btn btn-update" onclick="isAddressValid()">Update</button>
+                <a href="{{ url_for('more_order_info', orderNumber=order_number) }}" class="btn btn-cancel">Cancel</a>
+                <br/>
+                <span id="spnError" name="spnError" style="color: red;"></span>
+            {% endif %}
+        {% endfor %}
     </form>
 </div>
 {% endblock %}

@@ -63,6 +63,13 @@
 
 {% block body %}
 <div class="container-fluid">
+    <div class="row mb-3">
+        <div class="col text-end">
+            <a href="{{ url_for('manage_orders') }}" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left"></i> Back
+            </a>            
+        </div>
+    </div>
     <div class="row">
         <div class="col">
             <div class="card h-100 card-slider animated-card">
@@ -181,8 +188,10 @@
                                     <p><strong>City:</strong> {{ result.City }}</p>
                                     <p><strong>State:</strong> {{ result.StateName }}</p>
                                     <p><strong>Zip Code:</strong> {{ result.ZipCode }}</p>
-                                    <a href="https://www.google.com/maps?q={{ result.Address1 }}, {{ result.Address2 }}, {{ result.City }}, {{ result.StateName }}, {{ result.ZipCode }}" target="_blank" class="btn btn-success">Open in Google Maps</a>
-                                {% endif %}
+                                    <a href="https://www.google.com/maps?q={{ result.Address1 }}, {{ result.Address2 }}, {{ result.City }}, {{ result.StateName }}, {{ result.ZipCode }}" target="_blank" class="btn btn-success">
+                                        <i class="fas fa-map-marked-alt"></i> Open in Google Maps
+                                    </a>
+                                    {% endif %}
                             {% endfor %}
                         </div>
                     </div>

@@ -107,7 +107,7 @@ def get_all_categories_query():
     return "SELECT c.category_id, c.name FROM Categories as c"
 
 def get_filtered_categories_query():
-    return "SELECT * FROM Categories WHERE LENGTH(name) <= 16"
+    return "SELECT * FROM Categories WHERE LEN(name) <= 16"
 
 def insert_product_query(name, category_id, price, description, image_url):
     return "INSERT INTO Products (name, category_id, price, description, image_url) VALUES (?, ?, ?, ?, ?)"
@@ -132,9 +132,6 @@ def update_product_query(name, category_id, price, description, product_id):
 
 def get_product_by_id_query(product_id):
     return "SELECT * FROM Products WHERE product_id=?"
-
-def get_product_by_id_query(product_id):
-    return "SELECT * FROM Products WHERE product_id = ?"
 
 def get_all_states_query():
     return "SELECT * FROM States"
@@ -357,5 +354,39 @@ def return_purchase_query(isPost):
         """
     return query
 
+def return_status_query():
+    return "Select * from Status"
+
 def update_purchase_logs_status_query(status_id, order_number):
     return "UPDATE PurchaseLogs SET StatusID = ? WHERE OrderNumber = ?;"
+
+def return_order_address_query():
+    query = """
+    SELECT 
+            p.OrderID,
+            p.OrderNumber,
+            p.Address1,
+            p.Address2,
+            p.City,
+            p.ZipCode,
+            s.id as StatesID,
+            s.abbreviation AS StateAbbreviation
+        FROM PurchaseLogs AS p
+        LEFT JOIN states as s ON p.stateID = s.id
+        WHERE p.OrderNumber = ?
+    """
+    return query
+
+def update_address_by_order_number(state_id):
+    if state_id == 'None' or state_id is None or state_id == '':
+        query = f"UPDATE PurchaseLogs SET Address1 = ?, Address2 = ?, City = ?, ZipCode = ? WHERE OrderNumber = ?"
+    else:
+        query = f"UPDATE PurchaseLogs SET Address1 = ?, Address2 = ?, City = ?, StateID = ?, ZipCode = ? WHERE OrderNumber = ?"
+    
+    return query
+
+def get_all_users(userID):
+    query = f"Select u.ID, u.Username, u.PasswordHash, a.AccessLevelID, a.AccessLevelName, u.FirstName, u.LastName, u.OldHashPassword from Users as u Left Join AccessLevels as a ON u.AccessLevel = a.AccessLevelID"
+    if userID:
+        query += " Where u.ID = ?"
+    return query

@@ -39,7 +39,9 @@ from queries import (
     update_purchase_logs_status_query,
     return_status_query,
     return_order_address_query,
-    update_address_by_order_number
+    update_address_by_order_number,
+    get_all_users
+    
 )
 from contextlib import closing
 from werkzeug.exceptions import HTTPException
@@ -647,6 +649,31 @@ def ValidAddressData(order_number, address1, address2, city, state_id, zip_code)
         print("Error: ZipCode should be a digits.")
         return False
     return True
+
+@cache.cached(timeout=500)
+@app.route('/user_dashboard', methods=['GET', 'POST'])
+def user_dashboard():
+    city, postal_code = get_location_from_ip()
+    isSearching = False
+    conn = create_connection()
+    cursor = conn.cursor()
+    if request.method == 'POST':
+        isSearching = True
+        userID = request.form.get('userID')
+        cursor.execute(get_all_users(userID), userID)
+    else:
+        cursor.execute(get_all_users(None))
+    results = cursor.fetchall()
+    conn.close()
+
+    return render_template('user_dashboard.html', year=datetime.now().year, isSearching=isSearching, results=results, categories=get_nav_categories(), city=city, postal_code=postal_code)
+
+@cache.cached(timeout=500)
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+
+    return render_template('login.html')
+
 
 if __name__ == "__main__":
     app.run(debug=True)

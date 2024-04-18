@@ -384,3 +384,9 @@ def update_address_by_order_number(state_id):
         query = f"UPDATE PurchaseLogs SET Address1 = ?, Address2 = ?, City = ?, StateID = ?, ZipCode = ? WHERE OrderNumber = ?"
     
     return query
+
+def get_all_users(userID):
+    query = f"Select u.ID, u.Username, u.PasswordHash, a.AccessLevelID, a.AccessLevelName, u.FirstName, u.LastName, u.OldHashPassword from Users as u Left Join AccessLevels as a ON u.AccessLevel = a.AccessLevelID"
+    if userID:
+        query += " Where u.ID = ?"
+    return query

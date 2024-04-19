@@ -390,3 +390,18 @@ def get_all_users(userID):
     if userID:
         query += " Where u.ID = ?"
     return query
+
+def get_access_level():
+    query = f"Select * from AccessLevels"
+    return query
+
+def create_or_edit_user(id):
+    if id:
+        query = 'UPDATE users SET firstName=?, lastName=?, username=?, passwordHash=?, accessLevel=? WHERE ID=?;'
+    else:
+        query = 'INSERT INTO users (firstName, lastName, username, passwordHash, accessLevel) VALUES (?, ?, ?, ?, ?);'
+    return query
+
+
+def get_delete_user_query():
+    return "DELETE FROM Users WHERE ID=?"

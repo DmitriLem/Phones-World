@@ -40,8 +40,10 @@ from queries import (
     return_status_query,
     return_order_address_query,
     update_address_by_order_number,
-    get_all_users
-    
+    get_all_users,
+    get_access_level,
+    create_or_edit_user,
+    get_delete_user_query
 )
 from contextlib import closing
 from werkzeug.exceptions import HTTPException
@@ -674,6 +676,58 @@ def login():
 
     return render_template('login.html')
 
+def validate_data(fName, lName, username, password, access_lvl_id):
+    if not all([fName, lName, username, password]) or \
+            len(fName) < 2 or len(lName) < 2 or \
+            len(username) < 6 or len(password) < 6 or \
+            not access_lvl_id:
+        return False
+    return True
+
+@app.route('/add_new_user', methods=['GET', 'POST'])
+def add_new_user():
+
+    if request.method == 'POST':
+        print('POST')
+        fName = request.form.get('firstName').strip()
+        lName = request.form.get('lastName').strip()
+        username = request.form.get('username').strip()
+        password = request.form.get('password').strip()
+        access_lvl_id = request.form.get('Access')
+        valid = validate_data(fName, lName, username, password, access_lvl_id)
+        if valid:
+            with create_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute(create_or_edit_user(False), (fName, lName, username, password, access_lvl_id))
+                conn.commit()
+        else:
+            flash("Error")
+
+        return redirect('/user_dashboard')
+
+    city, postal_code = get_location_from_ip()
+    conn = create_connection()
+    cursor = conn.cursor()
+    cursor.execute(get_access_level())
+    access = cursor.fetchall()
+    conn.close()
+    return render_template('add_new_user.html', access=access, year=datetime.now().year, categories=get_nav_categories(), city=city, postal_code=postal_code)
+
+@app.route('/delete_user/<int:user_id>', methods=['POST'])
+def delete_user(user_id):
+    print(user_id)
+    if request.method == 'POST':
+        print('Post method')
+        try:
+            with create_connection() as conn:
+                cursor = conn.cursor()
+                query = get_delete_user_query()
+                cursor.execute(query, (user_id,))
+        except Exception as e:
+            print(e)
+            flash('Failed to delete user. Error: ' + str(e), 'error')
+
+    return redirect('/user_dashboard')
 
 if __name__ == "__main__":
     app.run(debug=True)

@@ -8,12 +8,62 @@
         event.preventDefault();
     }
   }
+
+  function confirmDeleteUser(userName, user_id) {
+    if (confirm(`Are you sure you want to delete "${userName}" from the database?`)) {
+        var userInput = prompt("Enter the username to confirm deletion:");
+        if (userInput === userName) {
+            // Показываем загрузочный оверлей
+            document.getElementById('loading-overlay').style.display = 'block';
+
+            console.log('Before fetch'); // Проверяем, что код доходит до этой точки
+            fetch(`/delete_user/${user_id}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({})
+            })
+            .then(response => {
+                console.log('Response:', response); // Проверяем ответ от сервера
+                if (response.ok) {
+                    window.location.reload();
+                } else {
+                    alert('Failed to delete user. Please try again.');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Failed to delete user. Please try again.');
+            });
+        } else {
+            alert("The entered username does not match, deletion canceled.");
+        }
+    }
+}
+
+function showOverlay() {
+    document.getElementById('loading-overlay').style.display = 'block';
+}
+
+function hideOverlay() {
+    document.getElementById('loading-overlay').style.display = 'none';
+}
+
+function performAction(button) {
+    showOverlay();
+    hideOverlay();
+}
   </script>
 {% endblock %}
 
 {% block body %}
 <div class="container mt-5">
-    
+  <div id="loading-overlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.5); z-index: 999; text-align: center; padding-top: 20%;">
+    <div class="spinner-border text-primary" role="status">
+        <span class="visually-hidden">Deleting...</span>
+    </div>
+  </div>
     <div class="row mb-2 text-end">
         <div class="row mb-2 text-start">
           <div class="col-sm-3 ms-3">
@@ -33,7 +83,7 @@
           {% endif %}  
           <div class="col text-end">
                 <a href="{{ url_for('index') }}" class="btn btn-outline-primary">Return to main page</a>
-                <a href="{{ url_for('index') }}" class="btn btn-primary">Add New User</a>
+                <a href="{{ url_for('add_new_user') }}" class="btn btn-primary">Add New User</a>
           </div>
       </div>
     </div>
@@ -66,7 +116,7 @@
                 <td>{{ user.LastName}}</td>
                 <td>
                     <a class="btn btn-warning" >Edit</a>
-                    <a class="btn btn-danger">Delete</a>
+                    <a class="btn btn-danger" onclick="confirmDeleteUser('{{ user.Username }}', '{{ user.ID }}')">Delete</a>
                 </td>
           </tr>
           {% endfor %}

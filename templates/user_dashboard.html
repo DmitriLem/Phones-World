@@ -115,7 +115,7 @@ function performAction(button) {
                 <td>{{ user.FirstName }}</td>
                 <td>{{ user.LastName}}</td>
                 <td>
-                    <a class="btn btn-warning" >Edit</a>
+                    <a class="btn btn-warning" href="{{ url_for('edit_user',user_id=user.ID) }}">Edit</a>
                     <a class="btn btn-danger" onclick="confirmDeleteUser('{{ user.Username }}', '{{ user.ID }}')">Delete</a>
                 </td>
           </tr>

@@ -131,7 +131,7 @@ def update_product_query(name, category_id, price, description, product_id):
     return "UPDATE Products SET name=?, category_id=?, price=?, description=? WHERE product_id=?"
 
 def get_product_by_id_query(product_id):
-    return "SELECT * FROM Products WHERE product_id=?"
+    return "SELECT * FROM Products AS p LEFT JOIN Inventory AS i ON p.product_id = i.product_id WHERE p.product_id = ?;"
 
 def get_all_states_query():
     return "SELECT * FROM States"
@@ -402,6 +402,14 @@ def create_or_edit_user(id):
         query = 'INSERT INTO users (firstName, lastName, username, passwordHash, accessLevel) VALUES (?, ?, ?, ?, ?);'
     return query
 
+def edit_user_query(isHashPassword):
+    if isHashPassword:
+        query = 'UPDATE users SET firstName=?, lastName=?, username=?, passwordHash=?, accessLevel=? WHERE ID=?;'
+    else:
+        query = 'UPDATE users SET firstName=?, lastName=?, username=?, accessLevel=? WHERE ID=?;'
+
+    print(query)
+    return query
 
 def get_delete_user_query():
     return "DELETE FROM Users WHERE ID=?"

@@ -1,0 +1,184 @@
+{% extends 'base.html' %}
+
+{% block head %}
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+<style>
+  .animated {
+    animation: fadeInUp 0.5s ease-out;
+  }
+
+  .form-group {
+    margin-bottom: 1.5rem;
+  }
+
+  .mt-3 {
+    margin-top: 1rem;
+  }
+
+  .ms-2 {
+    margin-left: 0.5rem;
+  }
+
+  .show-password-label {
+    cursor: pointer;
+  }
+
+  @keyframes fadeInUp {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+</style>
+{% endblock %}
+
+{% block body %}
+{% for r in result %}
+{% if loop.first %}
+<div class="container mt-5 animated">
+  <div class="row justify-content-center">
+    <div class="col-md-6">
+      <div class="card">
+        <div class="card-header bg-primary text-white text-center">
+          <h2>Edit  User</h2>
+        </div>
+        <div class="card-body">
+          <form action="/edit_user/{{ r.ID }}" method="POST" id="userForm">
+            <div class="form-group">
+              <label for="firstName">First Name</label>
+              <input type="text" value="{{ r.FirstName }}" class="form-control" id="firstName" name="firstName" placeholder="Enter First Name">
+            </div>
+            <div class="form-group">
+              <label for="lastName">Last Name</label>
+              <input type="text" value="{{ r.LastName }}" class="form-control" id="lastName" name="lastName" placeholder="Enter Last Name">
+            </div>
+            <div class="form-group">
+              <label for="username">User Name</label>
+              <input type="text" value="{{ r.Username }}" class="form-control" id="username" name="username" placeholder="Enter Username">
+            </div>
+            <a id="btnChangePass" class="btn btn-sm btn-primary mb-2">Change Password</a>
+            <div class="form-group" id="passwordGroup" style="display: none;">
+              <label for="password">Password</label>
+              <a type="button" id="btnCancel" class="btn btn-sm btn-danger mt-1 ms-2 mb-1">Cancel</a>
+              <input type="password" class="form-control" id="password" name="password" placeholder="Enter Password">
+            </div>            
+            <div class="form-group form-check" id="showPasswordGroup" style="display: none;">
+              <input type="checkbox" class="form-check-input" id="ShowPassword">
+              <label class="form-check-label show-password-label" for="ShowPassword">Show Password</label>
+            </div>
+            <div class="form-group">
+              <label for="Access">Access Level</label>
+              <select class="form-control" id="Access" name="Access">
+                {% for a in access %}
+                  {% if a.AccessLevelID == r.AccessLevel %}
+                  <option value="{{a.AccessLevelID}}" selected disabled>{{a.AccessLevelName}}</option>
+                  {% else %}
+                  <option value="{{a.AccessLevelID}}">{{a.AccessLevelName}}</option>
+                  {% endif %}
+                {% endfor %}
+              </select>
+            </div>
+            <div class="text-center">
+              <button type="submit" class="btn btn-primary">Submit</button>
+              <a href="{{ url_for('user_dashboard') }}" class="btn btn-danger">Cancel</a>
+            </div>
+            <div id="lblError" class="mt-3 text-danger text-center"></div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
+{% endfor %}
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.16.0/umd/popper.min.js"></script>
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+<script>
+
+$(document).ready(function() {
+  $('#btnChangePass').click(function() {
+    $('#btnChangePass').hide(); // Скрыть кнопку
+    $('#passwordGroup').show(); // Показать группу с паролем
+    $('#showPasswordGroup').show(); // Показать группу с чекбоксом "Show Password"
+    $('#password').val(''); // Очистить поле пароля
+    $('#ShowPassword').prop('checked', false); // Убедиться, что чекбокс не отмечен
+  });
+
+  $('#btnCancel').click(function() {
+    $('#btnChangePass').show();
+    $('#passwordGroup').hide();
+    $('#showPasswordGroup').hide();
+    $('#password').val('');
+    $('#ShowPassword').prop('checked', false);
+  });
+
+  $('#ShowPassword').click(function() {
+    $('#password').attr('type', $(this).prop('checked') ? 'text' : 'password');
+  });
+});
+
+function validateFormData() {
+  var firstName = document.getElementById('firstName').value.trim();
+  var lastName = document.getElementById('lastName').value.trim();
+  var username = document.getElementById('username').value.trim();
+  var password = document.getElementById('password').value.trim(); // Получаем значение пароля
+  var accessLevel = document.getElementById('Access').value;
+
+  var errorLabel = document.getElementById('lblError');
+  errorLabel.innerHTML = '';
+
+  if (firstName.length < 2) {
+    errorLabel.innerHTML = 'First Name should be at least 2 characters long.';
+    document.getElementById('firstName').focus();
+    return false;
+  }
+
+  if (lastName.length < 2) {
+    errorLabel.innerHTML = 'Last Name should be at least 2 characters long.';
+    document.getElementById('lastName').focus();
+    return false;
+  }
+
+  if (username.length < 4) {
+    errorLabel.innerHTML = 'Username should be at least 4 characters long.';
+    document.getElementById('username').focus();
+    return false;
+  }
+
+  // Проверяем, активно ли поле пароля, и применяем валидацию только если оно активно
+  if ($('#passwordGroup').is(':visible') && password.length < 6) {
+    errorLabel.innerHTML = 'Password should be at least 6 characters long.';
+    document.getElementById('password').focus();
+    return false;
+  }
+
+  if (accessLevel === '') {
+    errorLabel.innerHTML = 'Please select an Access Level.';
+    document.getElementById('Access').focus();
+    return false;
+  }
+
+  return true;
+}
+
+
+document.addEventListener('DOMContentLoaded', function() {
+  document.getElementById('userForm').addEventListener('submit', function(event) {
+    if (!validateFormData()) {
+      event.preventDefault();
+    }
+  });
+});
+
+  $(document).ready(function() {
+    $('#ShowPassword').click(function() {
+      $('#password').attr('type', $(this).prop('checked') ? 'text' : 'password');
+    });
+  });
+</script>
+{% endblock %}

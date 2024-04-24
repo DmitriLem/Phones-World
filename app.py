@@ -43,11 +43,13 @@ from queries import (
     get_all_users,
     get_access_level,
     create_or_edit_user,
-    get_delete_user_query
+    get_delete_user_query,
+    edit_user_query
 )
 from contextlib import closing
 from werkzeug.exceptions import HTTPException
 from emailbody import GetEmailBody
+from hasher import (hash_password)
 
 app = Flask(__name__)
 app.config.from_object(Config)
@@ -145,7 +147,7 @@ def get_product_by_id(product_id):
     cursor = conn.cursor()
     query = get_product_by_id_query(product_id)
     cursor.execute(query, (product_id,))
-    product = cursor.fetchone()
+    product = cursor.fetchall()
     conn.close()
     return product
 
@@ -679,7 +681,7 @@ def login():
 def validate_data(fName, lName, username, password, access_lvl_id):
     if not all([fName, lName, username, password]) or \
             len(fName) < 2 or len(lName) < 2 or \
-            len(username) < 6 or len(password) < 6 or \
+            len(username) < 3 or len(password) < 6 or \
             not access_lvl_id:
         return False
     return True
@@ -692,7 +694,7 @@ def add_new_user():
         fName = request.form.get('firstName').strip()
         lName = request.form.get('lastName').strip()
         username = request.form.get('username').strip()
-        password = request.form.get('password').strip()
+        password = hash_password(request.form.get('password').strip())
         access_lvl_id = request.form.get('Access')
         valid = validate_data(fName, lName, username, password, access_lvl_id)
         if valid:
@@ -713,6 +715,93 @@ def add_new_user():
     conn.close()
     return render_template('add_new_user.html', access=access, year=datetime.now().year, categories=get_nav_categories(), city=city, postal_code=postal_code)
 
+def validate_data_for_edit(fName, lName, username, password, access_lvl_id):
+    if not fName:
+        print("Ошибка: Имя не указано.")
+        return False
+    if not lName:
+        print("Ошибка: Фамилия не указана.")
+        return False
+    if not username:
+        print("Ошибка: Имя пользователя не указано.")
+        return False
+    if not access_lvl_id:
+        print("Ошибка: Уровень доступа не выбран.")
+        return False
+    
+    if len(fName) < 2:
+        print("Ошибка: Имя слишком короткое (минимум 2 символа).")
+        return False
+    if len(lName) < 2:
+        print("Ошибка: Фамилия слишком короткая (минимум 2 символа).")
+        return False
+    if len(username) < 3:
+        print("Ошибка: Имя пользователя должно содержать не менее 3 символов.")
+        return False
+    if password and len(password) < 6:
+        print("Ошибка: Пароль должен содержать не менее 6 символов.")
+        return False
+    
+    return True
+
+@app.route('/edit_user/<int:user_id>', methods=['GET', 'POST'])
+def edit_user(user_id):
+
+    if request.method == 'POST':
+        print('Post')
+        try:
+            fName = request.form.get('firstName').strip()
+            lName = request.form.get('lastName').strip()
+            username = request.form.get('username').strip()
+            password = request.form.get('password').strip()
+            access_lvl_id = request.form.get('Access')
+            if access_lvl_id is None or access_lvl_id == 'None':
+                conn = create_connection()
+                cursor = conn.cursor()
+                cursor.execute('Select AccessLevel from Users Where ID = ?', (user_id))
+                result = cursor.fetchone()
+                access_lvl_id = result[0]
+                conn.close()
+            print("FName:", fName)
+            print("LName:", lName)
+            print("Username:", username)
+            print("Password:", password)
+            print("Access Level ID:", access_lvl_id)
+            valid = validate_data_for_edit(fName, lName, username, password, access_lvl_id)
+            print('IsValid? ',valid)
+            if valid:
+                print('inside if')
+                conn = create_connection()
+                cursor = conn.cursor()
+                if password:
+                    password = hash_password(password)
+                    cursor.execute('UPDATE Users SET OldHashPassword = PasswordHash WHERE ID = ?',
+                                (user_id))
+                    cursor.execute('UPDATE Users SET firstName = ?, lastName = ?, Username = ?, passwordHash = ?, AccessLevel = ? WHERE ID = ?',
+                                (fName, lName, username, password, access_lvl_id, user_id))
+                else:
+                    cursor.execute('UPDATE Users SET firstName = ?, lastName = ?, Username = ?, AccessLevel = ? WHERE ID = ?',
+                                (fName, lName, username, access_lvl_id, user_id))
+                conn.commit()
+                conn.close()
+                return redirect('/user_dashboard')
+            else:
+                flash("Invalid data. Please check your input.")
+        except Exception as e:
+            print('Error:', e)
+
+        return redirect('/user_dashboard')
+
+    city, postal_code = get_location_from_ip()
+    conn = create_connection()
+    cursor = conn.cursor()
+    cursor.execute(get_access_level())
+    access = cursor.fetchall()
+    cursor.execute('Select* From Users Where ID = ?',(user_id))
+    result = cursor.fetchall()
+    conn.close()
+    return render_template('edit_user.html', access=access, year=datetime.now().year, categories=get_nav_categories(), city=city, postal_code=postal_code,result=result)
+    
 @app.route('/delete_user/<int:user_id>', methods=['POST'])
 def delete_user(user_id):
     print(user_id)
@@ -728,6 +817,29 @@ def delete_user(user_id):
             flash('Failed to delete user. Error: ' + str(e), 'error')
 
     return redirect('/user_dashboard')
+
+@app.route('/hub', methods=['GET'])
+def hub():
+    conn = create_connection()
+    cursor = conn.cursor()
+    cursor.execute('Select * from Users Where ID = 12')
+    user = cursor.fetchall()
+    conn.close()
+
+    print('User:',user)
+
+    return render_template('hub.html', user=user, time = get_time_of_day())
+
+def get_time_of_day():
+    current_time = datetime.now().time()
+    if current_time.hour < 12:
+        return "morning"
+    elif 12 <= current_time.hour < 17:
+        return "afternoon"
+    elif 17 <= current_time.hour < 21:
+        return "evening"
+    else:
+        return "night"
 
 if __name__ == "__main__":
     app.run(debug=True)

@@ -43,8 +43,7 @@ from queries import (
     get_all_users,
     get_access_level,
     create_or_edit_user,
-    get_delete_user_query,
-    edit_user_query
+    get_delete_user_query
 )
 from contextlib import closing
 from werkzeug.exceptions import HTTPException
@@ -672,10 +671,11 @@ def user_dashboard():
 
     return render_template('user_dashboard.html', year=datetime.now().year, isSearching=isSearching, results=results, categories=get_nav_categories(), city=city, postal_code=postal_code)
 
-@cache.cached(timeout=500)
 @app.route('/login', methods=['GET', 'POST'])
 def login():
 
+    if request.method == 'POST':
+        return redirect('/hub')
     return render_template('login.html')
 
 def validate_data(fName, lName, username, password, access_lvl_id):
@@ -829,6 +829,11 @@ def hub():
     print('User:',user)
 
     return render_template('hub.html', user=user, time = get_time_of_day())
+
+def is_user_has_an_access(userLvl, pyLvl):
+    if pyLvl > userLvl:
+        return False
+    return True
 
 def get_time_of_day():
     current_time = datetime.now().time()

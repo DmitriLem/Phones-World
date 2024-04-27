@@ -54,36 +54,33 @@
 <body>
     <div class="container">
         <div class="hero-text">
-            {% for u in user %}
-                {% if time == 'morning' %}
-                    <h1>Good Morning, {{u.FirstName}}!</h1>
-                {% elif time == 'afternoon' %}
-                    <h1>Hello, {{u.FirstName}}!</h1>
-                {% elif time == 'evening' %}
-                    <h1>Welcome Back, {{u.FirstName}}!</h1>
-                {% else %}
-                    <h1>Good Night, {{u.FirstName}}!</h1>
-                {% endif %}
-            {% endfor %}
+            {% if time == 'morning' %}
+                <h1>Good Morning, {{ user['FirstName'] }}!</h1>
+            {% elif time == 'afternoon' %}
+                <h1>Hello, {{ user['FirstName'] }}!</h1>
+            {% elif time == 'evening' %}
+                <h1>Welcome Back, {{ user['FirstName'] }}!</h1>
+            {% else %}
+                <h1>Good Night, {{ user['FirstName'] }}!</h1>
+            {% endif %}
         </div>
         <div class="btn-container">
-            {% for u in user %}
-            {% if u.AccessLevel >= 1 %}
+            {% if user['AccessLevel'] >= 1 %}
                 <a href="{{ url_for('manage_orders') }}" class="btn btn-danger btn-custom"><i class="fas fa-shopping-cart"></i> Orders</a>
             {% else %}
                 <button type="button" class="btn btn-danger btn-custom disabled"><i class="fas fa-shopping-cart"></i> Orders <i class="fas fa-lock"></i></button>
             {% endif %}
-            {% if u.AccessLevel >= 2 %}
+            {% if user['AccessLevel'] >= 2 %}
                 <a href="{{ url_for('crud') }}" class="btn btn-warning btn-custom"><i class="fas fa-box-open"></i> Inventory</a>
             {% else %}
                 <button type="button" class="btn btn-warning btn-custom disabled"><i class="fas fa-box-open"></i> Inventory <i class="fas fa-lock"></i></button>
             {% endif %}
-            {% if u.AccessLevel >= 3 %}
+            {% if user['AccessLevel'] >= 3 %}
                 <a href="{{ url_for('user_dashboard') }}" class="btn btn-success btn-custom"><i class="fas fa-users"></i> Users</a>
             {% else %}
                 <button type="button" class="btn btn-success btn-custom disabled"><i class="fas fa-users"></i> Users <i class="fas fa-lock"></i></button>
             {% endif %}
-            {% endfor %}
+            <a href="{{ url_for('logout') }}" class="btn btn-secondary btn-custom"><i class="fas fa-sign-out-alt"></i> Logout</a>
         </div>
     </div>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/js/all.min.js" integrity="sha512-TXXUFL6g8gnP76ejETWQrqKoQTEbi9y9vjTikxodj7qAnhnt/uv32eUSMlQbWY/XV67i0Fb3giZtc6E3QJRQ8g==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>

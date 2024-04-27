@@ -1,4 +1,5 @@
 from flask import Flask, render_template, request, redirect, session, flash, jsonify, make_response, render_template, url_for
+from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 import pyodbc
 import random
 import requests
@@ -53,6 +54,9 @@ from hasher import (hash_password)
 app = Flask(__name__)
 app.config.from_object(Config)
 cache = Cache(app)
+
+login_manager = LoginManager()
+login_manager.init_app(app)
 
 def create_connection():
     conn = pyodbc.connect('DRIVER={' + app.config['DB_DRIVER'] + '};SERVER=' + app.config['DB_SERVER'] +
@@ -184,12 +188,16 @@ def get_all_products():
 
 @app.route('/crud')
 def crud():
+    if not check_access(1):
+        return redirect(url_for('login'))
     city, postal_code = get_location_from_ip()
     results = get_all_products()
     return render_template('crud.html', year=datetime.now().year, results=results, categories=get_nav_categories(), city=city, postal_code=postal_code)
 
 @app.route('/add_product')
 def add_product():
+    if not check_access(1):
+        return redirect(url_for('login'))
     city, postal_code = get_location_from_ip()
     conn = create_connection()
     cursor = conn.cursor()
@@ -201,6 +209,8 @@ def add_product():
 
 @app.route('/create', methods=['POST'])
 def create():
+    if not check_access(1):
+        return redirect(url_for('login'))
     if request.method == 'POST':
         name = request.form.get('name')
         category_id = int(request.form.get('category_id'))
@@ -232,6 +242,8 @@ def create():
 
 @app.route('/delete/<int:product_id>', methods=['POST', 'GET'])
 def delete_product(product_id):
+    if not check_access(1):
+        return redirect(url_for('login'))
     if request.method == 'POST':
         try:
             with create_connection() as conn:
@@ -253,6 +265,8 @@ def delete_product(product_id):
 
 @app.route('/edit_product/<int:product_id>', methods=['GET', 'POST'])
 def edit_product(product_id):
+    if not check_access(1):
+        return redirect(url_for('login'))
     city, postal_code = get_location_from_ip()
     conn = create_connection()
     cursor = conn.cursor()
@@ -520,6 +534,8 @@ def handle_exception(e):
 @cache.cached(timeout=500)
 @app.route('/manageOrders', methods=['GET', 'POST'])
 def manage_orders():
+    if not check_access(2):
+        return redirect(url_for('login'))
     city, postal_code = get_location_from_ip()
     isPost = False
     conn = create_connection()
@@ -541,6 +557,8 @@ def manage_orders():
 @cache.cached(timeout=500)
 @app.route('/more_order_info/<int:orderNumber>', methods=['GET'])
 def more_order_info(orderNumber):
+    if not check_access(2):
+        return redirect(url_for('login'))
     city, postal_code = get_location_from_ip()
     conn = create_connection()
     cursor = conn.cursor()
@@ -556,6 +574,8 @@ def more_order_info(orderNumber):
 
 @app.route('/update_status', methods=['POST'])
 def update_status():
+    if not check_access(2):
+        return redirect(url_for('login'))
     try:
         data = request.get_json()
         status_id = data.get('StatusID')
@@ -577,6 +597,8 @@ def update_status():
 
 @app.route('/update_order_address', methods=['GET'])
 def update_order_address():
+    if not check_access(2):
+        return redirect(url_for('login'))
     order_number = request.args.get('orderNumber')
     city, postal_code = get_location_from_ip()
     conn = create_connection()
@@ -593,6 +615,8 @@ def update_order_address():
 
 @app.route('/update_address', methods=['POST'])
 def update_address():
+    if not check_access(2):
+        return redirect(url_for('login'))
     order_number = request.form.get('orderNumber')
     address1 = request.form.get('Address1')
     address2 = request.form.get('Address2')
@@ -656,6 +680,8 @@ def ValidAddressData(order_number, address1, address2, city, state_id, zip_code)
 @cache.cached(timeout=500)
 @app.route('/user_dashboard', methods=['GET', 'POST'])
 def user_dashboard():
+    if not check_access(3):
+        return redirect(url_for('login'))
     city, postal_code = get_location_from_ip()
     isSearching = False
     conn = create_connection()
@@ -671,12 +697,48 @@ def user_dashboard():
 
     return render_template('user_dashboard.html', year=datetime.now().year, isSearching=isSearching, results=results, categories=get_nav_categories(), city=city, postal_code=postal_code)
 
-@app.route('/login', methods=['GET', 'POST'])
-def login():
+class User(UserMixin):
+    def __init__(self, user_id, access_level, first_name, last_name):
+        self.id = user_id
+        self.access_level = access_level
+        self.first_name = first_name
+        self.last_name = last_name
 
-    if request.method == 'POST':
-        return redirect('/hub')
+@login_manager.user_loader
+def load_user(user_id):
+    conn = create_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT id, AccessLevel, FirstName, LastName FROM Users WHERE id=?", (user_id,))
+    user_data = cursor.fetchone()
+    conn.close()
+    if user_data:
+        user_id, access_level, first_name, last_name = user_data
+        return User(user_id, access_level, first_name, last_name)
+    return None
+
+@app.route('/login', methods=['GET'])
+def login():
     return render_template('login.html')
+
+@app.route('/login', methods=['POST'])
+def login_post():
+    username = request.form['username']
+    password = hash_password(request.form['password'])
+
+    conn = create_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT id, AccessLevel, FirstName, LastName, PasswordHash FROM Users WHERE username=?", (username,))
+    user_data = cursor.fetchone()
+        
+    if user_data and user_data[4] == password:
+        user = User(user_data[0], user_data[1], user_data[2], user_data[3])
+        login_user(user)
+        conn.close()
+        return redirect('/hub')
+    else:
+        flash('Incorrect username or password. Try Again.', 'Error')
+        conn.close()
+        return redirect(url_for('login'))
 
 def validate_data(fName, lName, username, password, access_lvl_id):
     if not all([fName, lName, username, password]) or \
@@ -686,9 +748,15 @@ def validate_data(fName, lName, username, password, access_lvl_id):
         return False
     return True
 
+@app.route('/logout')
+def logout():
+    logout_user()
+    return redirect(url_for('login'))
+
 @app.route('/add_new_user', methods=['GET', 'POST'])
 def add_new_user():
-
+    if not check_access(3):
+        return redirect(url_for('login'))
     if request.method == 'POST':
         print('POST')
         fName = request.form.get('firstName').strip()
@@ -746,7 +814,8 @@ def validate_data_for_edit(fName, lName, username, password, access_lvl_id):
 
 @app.route('/edit_user/<int:user_id>', methods=['GET', 'POST'])
 def edit_user(user_id):
-
+    if not check_access(3):
+        return redirect(url_for('login'))
     if request.method == 'POST':
         print('Post')
         try:
@@ -804,6 +873,8 @@ def edit_user(user_id):
     
 @app.route('/delete_user/<int:user_id>', methods=['POST'])
 def delete_user(user_id):
+    if not check_access(3):
+        return redirect(url_for('login'))
     print(user_id)
     if request.method == 'POST':
         print('Post method')
@@ -820,20 +891,22 @@ def delete_user(user_id):
 
 @app.route('/hub', methods=['GET'])
 def hub():
-    conn = create_connection()
-    cursor = conn.cursor()
-    cursor.execute('Select * from Users Where ID = 12')
-    user = cursor.fetchall()
-    conn.close()
 
-    print('User:',user)
+    if not check_access(1):
+        return redirect(url_for('login'))
+
+    user = {
+        'FirstName': current_user.first_name,
+        'LastName': current_user.last_name,
+        'AccessLevel': current_user.access_level
+    }
 
     return render_template('hub.html', user=user, time = get_time_of_day())
 
-def is_user_has_an_access(userLvl, pyLvl):
-    if pyLvl > userLvl:
+def check_access(access_level):
+    if not current_user.is_authenticated:
         return False
-    return True
+    return current_user.access_level >= access_level
 
 def get_time_of_day():
     current_time = datetime.now().time()

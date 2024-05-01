@@ -1,55 +1,61 @@
-from flask import Flask, render_template, request, redirect, session, flash, jsonify, make_response, render_template, url_for
-import pyodbc
-import random
-import requests
-from datetime import datetime
-import os
-from werkzeug.utils import secure_filename
-import uuid
-import decimal
+from flask import (
+    Flask, render_template, request, redirect, session, flash, jsonify,
+    make_response, url_for
+)
+from flask_login import (
+    LoginManager, UserMixin, login_user, logout_user, current_user
+)
 from flask_caching import Cache
-import smtplib
+from werkzeug.utils import secure_filename
+from datetime import datetime
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
-from config import Config
-from queries import (
-    fetch_random_products_query,
-    search_products_query,
-    get_product_by_id_query,
-    search_products_by_category_query,
-    get_all_products_query,
-    get_all_categories_query,
-    get_filtered_categories_query,
-    insert_product_query,
-    get_product_id_query,
-    insert_inventory_query,
-    get_image_url_query,
-    delete_inventory_query,
-    delete_product_query,
-    update_product_query,
-    get_all_states_query,
-    get_purchase_log_query,
-    update_inventory_query,
-    get_existing_order_numbers_query,
-    get_tax_percentage_query,
-    insert_purchase_log_query,
-    get_purchase_log_by_order_number_query,
-    return_order_list,
-    return_purchase_query,
-    update_purchase_logs_status_query,
-    return_status_query,
-    return_order_address_query,
-    update_address_by_order_number,
-    get_all_users
-    
-)
+import smtplib
+import pyodbc
+import requests
+import os
+import uuid
+import decimal
 from contextlib import closing
 from werkzeug.exceptions import HTTPException
+from config import Config
 from emailbody import GetEmailBody
+from hasher import hash_password
+from queries import (
+    fetch_random_products_query, search_products_query, get_product_by_id_query,
+    search_products_by_category_query, get_all_products_query, get_all_categories_query,
+    get_filtered_categories_query, insert_product_query, get_product_id_query,
+    insert_inventory_query, get_image_url_query, delete_inventory_query,
+    delete_product_query, update_product_query, get_all_states_query,
+    get_purchase_log_query, update_inventory_query, get_existing_order_numbers_query,
+    get_tax_percentage_query, insert_purchase_log_query,
+    get_purchase_log_by_order_number_query, return_order_list, return_purchase_query,
+    update_purchase_logs_status_query, return_status_query, return_order_address_query,
+    update_address_by_order_number, get_all_users, get_access_level, create_or_edit_user,
+    get_delete_user_query
+)
+from utils import (
+    generate_order_number,
+    calculate_total_cost,
+    validate_checkout_data,
+    ValidAddressData,
+    validate_data,
+    validate_data_for_edit
+)
 
 app = Flask(__name__)
 app.config.from_object(Config)
 cache = Cache(app)
+
+login_manager = LoginManager()
+login_manager.init_app(app)
+
+class User(UserMixin):
+    def __init__(self, user_id, access_level, first_name, last_name):
+        self.id = user_id
+        self.access_level = access_level
+        self.first_name = first_name
+        self.last_name = last_name
 
 def create_connection():
     conn = pyodbc.connect('DRIVER={' + app.config['DB_DRIVER'] + '};SERVER=' + app.config['DB_SERVER'] +
@@ -143,7 +149,7 @@ def get_product_by_id(product_id):
     cursor = conn.cursor()
     query = get_product_by_id_query(product_id)
     cursor.execute(query, (product_id,))
-    product = cursor.fetchone()
+    product = cursor.fetchall()
     conn.close()
     return product
 
@@ -181,12 +187,16 @@ def get_all_products():
 
 @app.route('/crud')
 def crud():
+    if not check_access(1):
+        return redirect(url_for('login'))
     city, postal_code = get_location_from_ip()
     results = get_all_products()
     return render_template('crud.html', year=datetime.now().year, results=results, categories=get_nav_categories(), city=city, postal_code=postal_code)
 
 @app.route('/add_product')
 def add_product():
+    if not check_access(1):
+        return redirect(url_for('login'))
     city, postal_code = get_location_from_ip()
     conn = create_connection()
     cursor = conn.cursor()
@@ -198,6 +208,8 @@ def add_product():
 
 @app.route('/create', methods=['POST'])
 def create():
+    if not check_access(1):
+        return redirect(url_for('login'))
     if request.method == 'POST':
         name = request.form.get('name')
         category_id = int(request.form.get('category_id'))
@@ -229,6 +241,8 @@ def create():
 
 @app.route('/delete/<int:product_id>', methods=['POST', 'GET'])
 def delete_product(product_id):
+    if not check_access(1):
+        return redirect(url_for('login'))
     if request.method == 'POST':
         try:
             with create_connection() as conn:
@@ -250,6 +264,8 @@ def delete_product(product_id):
 
 @app.route('/edit_product/<int:product_id>', methods=['GET', 'POST'])
 def edit_product(product_id):
+    if not check_access(1):
+        return redirect(url_for('login'))
     city, postal_code = get_location_from_ip()
     conn = create_connection()
     cursor = conn.cursor()
@@ -355,17 +371,6 @@ def buy():
                            city=city, postal_code=postal_code, cart_products=products_in_cart, total_items=total_items,
                            total_price=total_price, states=states)
 
-def generate_order_number(existing_order_numbers):
-    while True:
-        new_order_number = random.randint(100000, 99999999)
-        if new_order_number not in existing_order_numbers:
-            return new_order_number
-        
-def calculate_total_cost(price, tax_rate):
-    tax_amount = price * (float(tax_rate) / 100)
-    total_cost = price + tax_amount
-    return total_cost
-
 def sendEmailReceipt(order_number, recipient_email):
     smtp_config = Config.EMAIL_CFG
     sender_email = smtp_config['sender_email']
@@ -397,13 +402,6 @@ def sendEmailReceipt(order_number, recipient_email):
     except Exception as e:
         print(f'Failed to send email: {e}')
         return False
-
-def validate_checkout_data(data):
-    required_fields = ['emailAddress', 'cardNum', 'mm', 'yy', 'cardName', 'inputAddress', 'inputCity', 'inputState', 'inputZip', 'product_id[]', 'quantity[]']
-    for field in required_fields:
-        if field not in data:
-            return False
-    return True
 
 @app.route('/proceed_checkout', methods=['POST'])
 def proceed_checkout():
@@ -517,6 +515,9 @@ def handle_exception(e):
 @cache.cached(timeout=500)
 @app.route('/manageOrders', methods=['GET', 'POST'])
 def manage_orders():
+    if not check_access(1):
+        return redirect(url_for('login'))
+    
     city, postal_code = get_location_from_ip()
     isPost = False
     conn = create_connection()
@@ -538,6 +539,8 @@ def manage_orders():
 @cache.cached(timeout=500)
 @app.route('/more_order_info/<int:orderNumber>', methods=['GET'])
 def more_order_info(orderNumber):
+    if not check_access(2):
+        return redirect(url_for('login'))
     city, postal_code = get_location_from_ip()
     conn = create_connection()
     cursor = conn.cursor()
@@ -553,6 +556,8 @@ def more_order_info(orderNumber):
 
 @app.route('/update_status', methods=['POST'])
 def update_status():
+    if not check_access(2):
+        return redirect(url_for('login'))
     try:
         data = request.get_json()
         status_id = data.get('StatusID')
@@ -574,6 +579,8 @@ def update_status():
 
 @app.route('/update_order_address', methods=['GET'])
 def update_order_address():
+    if not check_access(2):
+        return redirect(url_for('login'))
     order_number = request.args.get('orderNumber')
     city, postal_code = get_location_from_ip()
     conn = create_connection()
@@ -590,6 +597,8 @@ def update_order_address():
 
 @app.route('/update_address', methods=['POST'])
 def update_address():
+    if not check_access(2):
+        return redirect(url_for('login'))
     order_number = request.form.get('orderNumber')
     address1 = request.form.get('Address1')
     address2 = request.form.get('Address2')
@@ -617,42 +626,11 @@ def update_address():
 
     return redirect(url_for('manage_orders'))
 
-def ValidAddressData(order_number, address1, address2, city, state_id, zip_code):
-    print(f"Address 1: {address1}")
-    print(f"Address 2: {address2}")
-    print(f"City: {city}")
-    print(f"State ID: {state_id}")
-    print(f"Zip Code: {zip_code}")
-    print(f"OrderNumber: {order_number}")
-    if not order_number:
-        print("Error: Order_Number should not be empty.")
-        return False
-    if not address1:
-        print("Error: Address1 should not be empty.")
-        return False
-    if not city:
-        print("Error: City should not be empty.")
-        return False
-    if not zip_code:
-        print("Error: ZipCode should not be empty.")
-        return False
-    if len(address1) < 2:
-        print("Error: Address1 should contain at least two characters.")
-        return False
-    if len(city) < 4:
-        print("Error: City should contain at least four characters.")
-        return False
-    if len(zip_code) != 5:
-        print("Error: ZipCode should contain exactly five digits.")
-        return False
-    if not zip_code.isdigit():
-        print("Error: ZipCode should be a digits.")
-        return False
-    return True
-
 @cache.cached(timeout=500)
 @app.route('/user_dashboard', methods=['GET', 'POST'])
 def user_dashboard():
+    if not check_access(3):
+        return redirect(url_for('login'))
     city, postal_code = get_location_from_ip()
     isSearching = False
     conn = create_connection()
@@ -668,12 +646,172 @@ def user_dashboard():
 
     return render_template('user_dashboard.html', year=datetime.now().year, isSearching=isSearching, results=results, categories=get_nav_categories(), city=city, postal_code=postal_code)
 
-@cache.cached(timeout=500)
-@app.route('/login', methods=['GET', 'POST'])
-def login():
+@login_manager.user_loader
+def load_user(user_id):
+    conn = create_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT id, AccessLevel, FirstName, LastName FROM Users WHERE id=?", (user_id,))
+    user_data = cursor.fetchone()
+    conn.close()
+    if user_data:
+        user_id, access_level, first_name, last_name = user_data
+        return User(user_id, access_level, first_name, last_name)
+    return None
 
+@app.route('/login', methods=['GET'])
+def login():
     return render_template('login.html')
 
+@app.route('/login', methods=['POST'])
+def login_post():
+    username = request.form['username']
+    password = hash_password(request.form['password'])
+
+    conn = create_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT id, AccessLevel, FirstName, LastName, PasswordHash FROM Users WHERE username=?", (username,)) # 0 1 2 3 4 (4 - password)
+    user_data = cursor.fetchone()
+        
+    if user_data and user_data[4] == password:
+        user = User(user_data[0], user_data[1], user_data[2], user_data[3])
+        login_user(user)
+        conn.close()
+        return redirect('/hub')
+    else:
+        flash('Incorrect username or password. Try Again.', 'Error')
+        conn.close()
+        return redirect(url_for('login'))
+
+@app.route('/logout')
+def logout():
+    logout_user()
+    return redirect(url_for('login'))
+
+@app.route('/add_new_user', methods=['GET', 'POST'])
+def add_new_user():
+    if not check_access(3):
+        return redirect(url_for('login'))
+    if request.method == 'POST':
+        print('POST')
+        fName = request.form.get('firstName').strip()
+        lName = request.form.get('lastName').strip()
+        username = request.form.get('username').strip()
+        password = hash_password(request.form.get('password').strip())
+        access_lvl_id = request.form.get('Access')
+        valid = validate_data(fName, lName, username, password, access_lvl_id)
+        if valid:
+            with create_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute(create_or_edit_user(False), (fName, lName, username, password, access_lvl_id))
+                conn.commit()
+        else:
+            flash("Error")
+
+        return redirect('/user_dashboard')
+
+    city, postal_code = get_location_from_ip()
+    conn = create_connection()
+    cursor = conn.cursor()
+    cursor.execute(get_access_level())
+    access = cursor.fetchall()
+    conn.close()
+    return render_template('add_new_user.html', access=access, year=datetime.now().year, categories=get_nav_categories(), city=city, postal_code=postal_code)
+
+@app.route('/edit_user/<int:user_id>', methods=['GET', 'POST'])
+def edit_user(user_id):
+    if not check_access(3):
+        return redirect(url_for('login'))
+    if request.method == 'POST':
+        print('Post')
+        try:
+            fName = request.form.get('firstName').strip()
+            lName = request.form.get('lastName').strip()
+            username = request.form.get('username').strip()
+            password = request.form.get('password').strip()
+            access_lvl_id = request.form.get('Access')
+            if access_lvl_id is None or access_lvl_id == 'None':
+                conn = create_connection()
+                cursor = conn.cursor()
+                cursor.execute('Select AccessLevel from Users Where ID = ?', (user_id))
+                result = cursor.fetchone()
+                access_lvl_id = result[0]
+                conn.close()
+            print("FName:", fName)
+            print("LName:", lName)
+            print("Username:", username)
+            print("Password:", password)
+            print("Access Level ID:", access_lvl_id)
+            valid = validate_data_for_edit(fName, lName, username, password, access_lvl_id)
+            print('IsValid? ',valid)
+            if valid:
+                print('inside if')
+                conn = create_connection()
+                cursor = conn.cursor()
+                if password:
+                    password = hash_password(password)
+                    cursor.execute('UPDATE Users SET OldHashPassword = PasswordHash WHERE ID = ?',
+                                (user_id))
+                    cursor.execute('UPDATE Users SET firstName = ?, lastName = ?, Username = ?, passwordHash = ?, AccessLevel = ? WHERE ID = ?',
+                                (fName, lName, username, password, access_lvl_id, user_id))
+                else:
+                    cursor.execute('UPDATE Users SET firstName = ?, lastName = ?, Username = ?, AccessLevel = ? WHERE ID = ?',
+                                (fName, lName, username, access_lvl_id, user_id))
+                conn.commit()
+                conn.close()
+                return redirect('/user_dashboard')
+            else:
+                flash("Invalid data. Please check your input.")
+        except Exception as e:
+            print('Error:', e)
+
+        return redirect('/user_dashboard')
+
+    city, postal_code = get_location_from_ip()
+    conn = create_connection()
+    cursor = conn.cursor()
+    cursor.execute(get_access_level())
+    access = cursor.fetchall()
+    cursor.execute('Select* From Users Where ID = ?',(user_id))
+    result = cursor.fetchall()
+    conn.close()
+    return render_template('edit_user.html', access=access, year=datetime.now().year, categories=get_nav_categories(), city=city, postal_code=postal_code,result=result)
+    
+@app.route('/delete_user/<int:user_id>', methods=['POST'])
+def delete_user(user_id):
+    if not check_access(3):
+        return redirect(url_for('login'))
+    print(user_id)
+    if request.method == 'POST':
+        print('Post method')
+        try:
+            with create_connection() as conn:
+                cursor = conn.cursor()
+                query = get_delete_user_query()
+                cursor.execute(query, (user_id,))
+        except Exception as e:
+            print(e)
+            flash('Failed to delete user. Error: ' + str(e), 'error')
+
+    return redirect('/user_dashboard')
+
+@app.route('/hub', methods=['GET'])
+def hub():
+
+    if not check_access(1):
+        return redirect(url_for('login'))
+
+    user = {
+        'FirstName': current_user.first_name,
+        'LastName': current_user.last_name,
+        'AccessLevel': current_user.access_level
+    }
+
+    return render_template('hub.html', user=user, time = get_time_of_day())
+
+def check_access(access_level):
+    if not current_user.is_authenticated:
+        return False
+    return current_user.access_level >= access_level
 
 if __name__ == "__main__":
     app.run(debug=True)

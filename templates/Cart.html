@@ -1,19 +1,19 @@
 {% extends 'base.html' %}
 
 {% block head %}
-<!-- Добавим ссылку на CSS-файл для стилизации корзины -->
+
 <link rel="stylesheet" href="{{ url_for('static', filename='css/cart.css') }}">
 <style>
-    /* Стили для ссылок внутри карточек товаров */
+    
     .card-body a {
-        color: white; /* Цвет текста по умолчанию (белый) */
-        text-decoration: none; /* Убираем декорацию (подчеркивание) по умолчанию */
-        transition: text-decoration 0.3s ease-in-out; /* Анимация для подчеркивания */
+        color: black; 
+        text-decoration: none; 
+        transition: text-decoration 0.3s ease-in-out; 
     }
 
-    /* При наведении курсора на ссылку добавляем подчеркивание */
+    
     .card-body a:hover {
-        text-decoration: underline; /* Подчеркивание при наведении */
+        text-decoration: underline; 
     }
 </style>
 {% endblock %}
